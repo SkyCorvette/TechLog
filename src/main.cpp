@@ -33,7 +33,6 @@ int main(int argc, const char **argv)
         po::positional_options_description positional;
 
         regexp.add_options()("regexp,r", po::value<std::vector<std::string>>()->multitoken(), ": use pattern ARG for matching");
-        positional.add("regexp", 1);
 
         misc.add_options()("version", ": display version information and exit");
         misc.add_options()("help", ": display this help and exit");
@@ -81,14 +80,11 @@ int main(int argc, const char **argv)
         events.add_options()("VRSREQUEST", "");
         events.add_options()("VRSRESPONSE", "");
 
-        all.add(regexp);
-        all.add(output);
-        all.add(misc);
-        all.add(events);
+        positional.add("regexp", 1);
 
-        visible.add(regexp);
-        visible.add(output);
-        visible.add(misc);
+        all.add(regexp).add(output).add(misc).add(events);
+
+        visible.add(regexp).add(output).add(misc);
 
         po::variables_map vm;
         auto parsed = po::basic_command_line_parser<char>(argc, argv).options(all).positional(positional).extra_parser(extraRegexp).run();
