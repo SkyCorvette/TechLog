@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 3.8)
-project(techlog VERSION 1.0.1)
+project(techlog)
+
+set (VERSION_MAJOR 1)
+set (VERSION_MINOR 0)
+
+configure_file (
+    "${PROJECT_SOURCE_DIR}/src/version.h.in"
+    "${PROJECT_SOURCE_DIR}/src/version.h"
+)
 
 set(CMAKE_CXX_STANDARD 14)
 
