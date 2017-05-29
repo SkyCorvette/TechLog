@@ -99,19 +99,19 @@ int main(int argc, const char **argv)
         if (vm.count("version"))
         {
             std::cout << "techlog "<< VERSION_MAJOR << "." << VERSION_MINOR << std::endl;
-            return 0;
+            return 1;
         }
 
         if (vm.count("help"))
         {
             std::cout << visible << std::endl;
-            return 0;
+            return 1;
         }
 
         if (vm.count("help-events"))
         {
             std::cout << events << std::endl;
-            return 0;
+            return 1;
         }
 
         if (vm.count("regexp"))
@@ -145,7 +145,8 @@ int main(int argc, const char **argv)
     catch (std::exception &e)
     {
         std::cout << e.what() << std::endl;
+        return 2;
     }
 
-    return 1;
+    return 0;
 }
