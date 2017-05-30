@@ -4,29 +4,21 @@
 
 namespace po = boost::program_options;
 
-std::pair<std::string, std::string> extraRegexp(const std::string& s)
+struct Options
 {
-    if(s.find("-r") == 0)
-    {
-        return std::make_pair("regexp", s.substr(2));
-    }
-    else
-    {
-        return std::make_pair(std::string(), std::string());
-    }
-}
+    Options() : version(false), help(false), helpEvents(false), stopAfter(0), fileName(false), lineNumber(false) {}
+    bool version;
+    bool help;
+    bool helpEvents;
+    unsigned int stopAfter;
+    bool fileName;
+    bool lineNumber;
+    std::vector<std::pair<std::string, std::string>> regexp;
+};
 
 int main(int argc, const char **argv)
 {
-    struct
-    {
-        bool version;
-        bool help;
-        bool helpEvents;
-        int stopAfter;
-        bool fileName;
-        bool lineNumber;
-    } options;
+    Options options;
 
     po::options_description all("Allowed options");
     po::options_description visible("Allowed options");
@@ -40,13 +32,13 @@ int main(int argc, const char **argv)
 
     regexp.add_options()("regexp,r", po::value<std::vector<std::string>>()->multitoken(), ": use pattern ARG for matching");
 
-    misc.add_options()("version", po::value<bool>(&options.version)->implicit_value(true), ": display version information and exit");
-    misc.add_options()("help", po::value<bool>(&options.help)->implicit_value(true), ": display this help and exit");
-    misc.add_options()("help-events", po::value<bool>(&options.helpEvents)->implicit_value(true), ": display events help and exit");
+    misc.add_options()("version", po::bool_switch(&options.version), ": display version information and exit");
+    misc.add_options()("help", po::bool_switch(&options.help), ": display this help and exit");
+    misc.add_options()("help-events", po::bool_switch(&options.helpEvents), ": display events help and exit");
 
-    output.add_options()("stop-after,s", po::value<int>(&options.stopAfter), ": stop after ARG output lines");
-    output.add_options()("file-name,f", po::value<bool>(&options.fileName)->implicit_value(true), ": print the file name prefix on output");
-    output.add_options()("line-number,l", po::value<bool>(&options.lineNumber)->implicit_value(true), ": print line number with output lines");
+    output.add_options()("stop-after,s", po::value(&options.stopAfter), ": stop after ARG output lines");
+    output.add_options()("file-name,f", po::bool_switch(&options.fileName), ": print the file name prefix on output");
+    output.add_options()("line-number,l", po::bool_switch(&options.lineNumber), ": print line number with output lines");
 
     events.add_options()("ADMIN", "");
     events.add_options()("ATTN", "");
@@ -96,28 +88,32 @@ int main(int argc, const char **argv)
     {
         po::variables_map vm;
 
-        auto parsed = po::basic_command_line_parser<char>(argc, argv).allow_unregistered().options(all).positional(positional).extra_parser(extraRegexp).run();
+        auto parsed = po::basic_command_line_parser<char>(argc, argv).options(all).allow_unregistered().positional(positional).run();
         auto unrecognized = po::collect_unrecognized(parsed.options, po::exclude_positional);
 
         po::store(parsed, vm);
+
         po::notify(vm);
 
         if (vm.count("regexp"))
         {
             for(auto const& value: vm["regexp"].as<std::vector<std::string>>())
             {
-                std::cout << "@regexp = " << value << std::endl;
+                options.regexp.push_back(std::make_pair("", value));
             }
         }
 
-        for(auto const& value: unrecognized)
+        for(auto const& unrecognizedOption: unrecognized)
         {
-            std::cout << "@unrecognized: " << value << std::endl;
-            auto a = po::split_unix(value, "=");
+            auto splitted = po::split_unix(unrecognizedOption, "=");
 
-            for(auto const& value1: a)
+            if (splitted.size() == 2 && unrecognizedOption.find("--") == 0)
             {
-                std::cout << value1 << std::endl;
+                options.regexp.push_back(std::make_pair(splitted[0].substr(2), splitted[1]));
+            }
+            else
+            {
+                throw po::unknown_option(unrecognizedOption);
             }
         }
     }
@@ -143,6 +139,11 @@ int main(int argc, const char **argv)
     {
         std::cout << events << std::endl;
         return 1;
+    }
+
+    for(auto const& r: options.regexp)
+    {
+        std::cout << r.first << " : " << r.second << std::endl;
     }
 
     return 0;
