@@ -149,7 +149,7 @@ int main(int argc, const char **argv)
 
     if (!options.regexps.size() && !options.events.size())
     {
-        std::cout << "usage: techlog [-fl] [-s num] [-r pattern] [--property=pattern] [pattern]" << std::endl;
+        std::cout << "usage: techlog [-fl] [-s num] [-r pattern] [--event] [--property=pattern] [pattern]" << std::endl;
     }
 
     if (options.help)
