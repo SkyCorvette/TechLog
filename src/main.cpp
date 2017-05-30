@@ -147,6 +147,11 @@ int main(int argc, const char **argv)
 	    return 1;
     }
 
+    if (!options.regexps.size() && !options.events.size())
+    {
+        std::cout << "usage: techlog [-fl] [-s num] [-r pattern] [--property=pattern] [pattern]" << std::endl;
+    }
+
     if (options.help)
     {
         std::cout << visibleOptions << std::endl;
