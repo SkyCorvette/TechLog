@@ -6,7 +6,6 @@ namespace po = boost::program_options;
 
 struct Options
 {
-    Options() : version(false), help(false), helpEvents(false), stopAfter(0), fileName(false), lineNumber(false) {}
     bool version;
     bool help;
     bool helpEvents;
@@ -60,7 +59,7 @@ std::vector<std::string> availableEvents
 
 int main(int argc, const char **argv)
 {
-    Options options;
+    Options options {};
 
     po::options_description allOptions("Allowed options");
     po::options_description visibleOptions("Allowed options");
