@@ -1,10 +1,15 @@
 #include <iostream>
 #include <boost/program_options.hpp>
+#include <boost/filesystem/operations.hpp>
 #include "version.h"
 
-namespace po = boost::program_options;
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
 
-struct Options
+namespace po = boost::program_options;
+namespace fs = boost::filesystem;
+
+struct
 {
     bool version;
     bool help;
@@ -14,7 +19,7 @@ struct Options
     bool lineNumber;
     std::vector<std::pair<std::string, std::string>> regexps;
     std::vector<std::string> events;
-};
+} options {};
 
 std::vector<std::string> availableEvents
 {
@@ -59,8 +64,6 @@ std::vector<std::string> availableEvents
 
 int main(int argc, const char **argv)
 {
-    Options options {};
-
     po::options_description allOptions("Allowed options");
     po::options_description visibleOptions("Allowed options");
 
@@ -149,6 +152,11 @@ int main(int argc, const char **argv)
     if (!options.regexps.size() && !options.events.size())
     {
         std::cout << "usage: techlog [-fl] [-s num] [-r pattern] [--event] [--property=pattern] [pattern]" << std::endl;
+
+        if (!options.help)
+        {
+            return 1;
+        }
     }
 
     if (options.help)
@@ -171,6 +179,34 @@ int main(int argc, const char **argv)
     for(auto const& regexp: options.regexps)
     {
         std::cout << regexp.first << " : " << regexp.second << std::endl;
+    }
+
+    bool isRegularFile;
+    boost::system::error_code ec;
+
+    int errorcode;
+    PCRE2_SIZE erroffset;
+
+    pcre2_code *fileNameRegexp = pcre2_compile((PCRE2_SPTR)"(?i)^\\d{8}\\.log$", PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL);
+    pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(fileNameRegexp, NULL);
+
+    for (fs::recursive_directory_iterator it("./"); it != fs::recursive_directory_iterator();)
+    {
+        try
+        {
+            isRegularFile = boost::filesystem::is_regular_file(it->path());
+        }
+        catch (const boost::filesystem::filesystem_error& ex)
+        {
+            isRegularFile = false;
+        }
+
+        if (isRegularFile && (pcre2_match(fileNameRegexp, (PCRE2_SPTR) it->path().filename().c_str(), (PCRE2_SIZE) -1, 0, 0, match_data, NULL) > 0))
+        {
+            std::cout << it->path().filename().c_str() << std::endl;
+        }
+
+        it.increment(ec);
     }
 
     return 0;
