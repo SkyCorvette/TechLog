@@ -12,8 +12,10 @@ namespace fs = boost::filesystem;
 
 static const size_t initialBufferSize = 32768;
 
-int errorcode;
-PCRE2_SIZE erroffset;
+static const std::string color_filename {"\x1B[32;1m\x1B[K"}; // 32=green, 1=bold
+static const std::string color_match    {"\x1B[31;1m\x1B[K"}; // 31=red, 1=bold
+static const std::string color_lineno   {"\x1B[33;1m\x1B[K"}; // 33=yellow, 1=bold
+static const std::string color_normal   {"\x1B[0m\x1B[K"};    // Reset/normal (all attributes off).
 
 struct
 {
@@ -221,6 +223,10 @@ int main(int argc, const char **argv)
         std::cout << event << std::endl;
     }
 
+    int errorcode;
+    PCRE2_SIZE erroffset;
+    PCRE2_SIZE *ovector;
+
     for(auto const& linePattern: options.linePatterns)
     {
         std::cout << linePattern << std::endl;
@@ -250,7 +256,7 @@ int main(int argc, const char **argv)
             isRegularFile = false;
         }
 
-        if (isRegularFile && (pcre2_match(fileNamePattern, (PCRE2_SPTR) it->path().filename().c_str(), (PCRE2_SIZE) -1, 0, 0, fileNameMatchData, NULL) > 0))
+        if (isRegularFile && (pcre2_match(fileNamePattern, (PCRE2_SPTR) it->path().filename().c_str(), (PCRE2_SIZE) strlen(it->path().filename().c_str()), 0, 0, fileNameMatchData, NULL) > 0))
         {
             int file = open(it->path().c_str(), O_RDONLY | O_NOCTTY | O_LARGEFILE | O_NOFOLLOW | O_NONBLOCK);
 
@@ -269,6 +275,8 @@ int main(int argc, const char **argv)
 
             ssize_t bytesRead = 0;
 
+            int rc;
+
             while ((bytesRead = read(file, bufferSaved, initialBufferSize)))
             {
                 bufferEnd = bufferSaved + bytesRead;
@@ -280,20 +288,34 @@ int main(int argc, const char **argv)
 
                 while ((newLine = endLine(recordBegin, bufferEnd - recordBegin)))
                 {
+                    bool printLine = false;
+
                     for(auto const& linePatternCompiled: options.linePatternsCompiled)
                     {
                         pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(linePatternCompiled, NULL);
+                        rc = pcre2_match(linePatternCompiled, (PCRE2_SPTR) recordBegin, newLine - recordBegin, 0, 0, match_data, NULL);
 
-                        if (pcre2_match(linePatternCompiled, (PCRE2_SPTR) recordBegin, newLine - recordBegin, 0, 0, match_data, NULL) > 0)
+                        while (rc > 0)
                         {
-                            std::cout << std::string(recordBegin, newLine - 1) << std::endl;
-                            pcre2_match_data_free(match_data);
-                            break;
+                            printLine = true;
+                            ovector = pcre2_get_ovector_pointer(match_data);
+
+                            for (int i = 0; i < rc; i++)
+                            {
+                                std::cout << std::string(recordBegin, ovector[2 * i]);
+                                std::cout << color_match << std::string(recordBegin + ovector[2 * i], ovector[2 * i + 1] - ovector[2 * i]) << color_normal;
+                                recordBegin = recordBegin + ovector[2 * i + 1];
+                            }
+
+                            rc = pcre2_match(linePatternCompiled, (PCRE2_SPTR) recordBegin, newLine - recordBegin, 0, 0, match_data, NULL);
                         }
-                        else
-                        {
-                            pcre2_match_data_free(match_data);
-                        }
+
+                        pcre2_match_data_free(match_data);
+                    }
+
+                    if (printLine)
+                    {
+                        std::cout << std::string(recordBegin, newLine - recordBegin) << std::endl;
                     }
 
                     recordBegin = newLine;
@@ -334,6 +356,16 @@ int main(int argc, const char **argv)
 
     pcre2_match_data_free(fileNameMatchData);
     pcre2_code_free(fileNamePattern);
+
+    for(auto const& linePatternCompiled: options.linePatternsCompiled)
+    {
+        pcre2_code_free(linePatternCompiled);
+    }
+
+    for(auto const& propertyPatternCompiled: options.propertyPatternsCompiled)
+    {
+        pcre2_code_free(propertyPatternCompiled.second);
+    }
 
     return 0;
 }
