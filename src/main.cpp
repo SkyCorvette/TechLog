@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sys/fcntl.h>
 #include <boost/program_options.hpp>
 #include <boost/filesystem/operations.hpp>
 #include "version.h"
@@ -9,6 +10,11 @@
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
+static const size_t initialBufferSize = 32768;
+
+int errorcode;
+PCRE2_SIZE erroffset;
+
 struct
 {
     bool version;
@@ -17,8 +23,11 @@ struct
     unsigned int stopAfter;
     bool fileName;
     bool lineNumber;
-    std::vector<std::pair<std::string, std::string>> regexps;
+    std::vector<std::string> linePatterns;
+    std::vector<std::pair<std::string, std::string>> propertyPatterns;
     std::vector<std::string> events;
+    std::vector<pcre2_code*> linePatternsCompiled;
+    std::vector<std::pair<std::string, pcre2_code*>> propertyPatternsCompiled;
 } options {};
 
 std::vector<std::string> availableEvents
@@ -62,19 +71,55 @@ std::vector<std::string> availableEvents
     "VRSRESPONSE"
 };
 
+char* endLine(char* buf, ssize_t length)
+{
+    auto src = (const char *) buf;
+    const char* nl = nullptr;
+    const char* dq = nullptr;
+    const char* sq = nullptr;
+    auto inDQ = false;
+    auto inSQ = false;
+
+    while ((nl = (char*) memchr(src, '\n', length - (src - buf))))
+    {
+        dq = inSQ ? nullptr : (char*) memchr(src, '"', nl - src);
+        sq = inDQ ? nullptr : (char*) memchr(src, '\'', nl - src);
+
+        if ((dq && sq && dq < sq) || (dq && !sq))
+        {
+            inDQ = !inDQ;
+            src = dq + 1;
+        }
+        else if ((dq && dq > sq) || (!dq && sq))
+        {
+            inSQ = !inSQ;
+            src = sq + 1;
+        }
+        else if (!inDQ && !inSQ)
+        {
+            return (char*) nl;
+        }
+        else
+        {
+            src = nl + 1;
+        }
+    }
+    return nullptr;
+}
+
 int main(int argc, const char **argv)
 {
     po::options_description allOptions("Allowed options");
     po::options_description visibleOptions("Allowed options");
 
-    po::options_description regexpOptions("Regexp");
+    po::options_description patternOptions("Patterns");
     po::options_description miscOptions("Miscellaneous");
     po::options_description outputOptions("Output control");
-    po::options_description eventsOptions("Events");
+    po::options_description eventOptions("Events");
 
     po::positional_options_description positionalOptions;
 
-    regexpOptions.add_options()("regexp,r", po::value<std::vector<std::string>>()->multitoken(), ": use pattern ARG for matching");
+    patternOptions.add_options()("pattern,p", po::value<std::vector<std::string>>()->multitoken(), ": use pattern ARG for matching");
 
     miscOptions.add_options()("version", po::bool_switch(&options.version), ": display version information and exit");
     miscOptions.add_options()("help", po::bool_switch(&options.help), ": display this help and exit");
@@ -86,13 +131,13 @@ int main(int argc, const char **argv)
 
     for(auto const& availableEvent: availableEvents)
     {
-        eventsOptions.add_options()(availableEvent.c_str(), "");
+        eventOptions.add_options()(availableEvent.c_str(), "");
     }
 
-    positionalOptions.add("regexp", 1);
+    positionalOptions.add("pattern", 1);
 
-    allOptions.add(regexpOptions).add(outputOptions).add(miscOptions).add(eventsOptions);
-    visibleOptions.add(regexpOptions).add(outputOptions).add(miscOptions);
+    allOptions.add(patternOptions).add(outputOptions).add(miscOptions).add(eventOptions);
+    visibleOptions.add(patternOptions).add(outputOptions).add(miscOptions);
 
     try
     {
@@ -113,11 +158,11 @@ int main(int argc, const char **argv)
             }
         }
 
-        if (vm.count("regexp"))
+        if (vm.count("pattern"))
         {
-            for(auto const& value: vm["regexp"].as<std::vector<std::string>>())
+            for(auto const& value: vm["pattern"].as<std::vector<std::string>>())
             {
-                options.regexps.push_back(std::make_pair("", value));
+                options.linePatterns.push_back(value);
             }
         }
 
@@ -127,7 +172,7 @@ int main(int argc, const char **argv)
 
             if (splitted.size() == 2 && unrecognizedOption.find("--") == 0)
             {
-                options.regexps.push_back(std::make_pair(splitted[0].substr(2), splitted[1]));
+                options.propertyPatterns.push_back(std::make_pair(splitted[0].substr(2), splitted[1]));
             }
             else
             {
@@ -149,9 +194,9 @@ int main(int argc, const char **argv)
 	    return 1;
     }
 
-    if (!options.regexps.size() && !options.events.size())
+    if (!options.linePatterns.size() && !options.propertyPatterns.size() && !options.events.size())
     {
-        std::cout << "usage: techlog [-fl] [-s num] [-r pattern] [--event] [--property=pattern] [pattern]" << std::endl;
+        std::cout << "usage: techlog [-fl] [-s num] [-p pattern] [--event] [--property=pattern] [pattern]" << std::endl;
 
         if (!options.help)
         {
@@ -167,7 +212,7 @@ int main(int argc, const char **argv)
 
     if (options.helpEvents)
     {
-        std::cout << eventsOptions << std::endl;
+        std::cout << eventOptions << std::endl;
         return 1;
     }
 
@@ -176,19 +221,23 @@ int main(int argc, const char **argv)
         std::cout << event << std::endl;
     }
 
-    for(auto const& regexp: options.regexps)
+    for(auto const& linePattern: options.linePatterns)
     {
-        std::cout << regexp.first << " : " << regexp.second << std::endl;
+        std::cout << linePattern << std::endl;
+        options.linePatternsCompiled.push_back(pcre2_compile((PCRE2_SPTR) linePattern.c_str(), PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL));
+    }
+
+    for(auto const& propertyPattern: options.propertyPatterns)
+    {
+        std::cout << propertyPattern.first << " : " << propertyPattern.second << std::endl;
+        options.propertyPatternsCompiled.push_back(std::make_pair(propertyPattern.first, pcre2_compile((PCRE2_SPTR) propertyPattern.second.c_str(), PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL)));
     }
 
     bool isRegularFile;
     boost::system::error_code ec;
 
-    int errorcode;
-    PCRE2_SIZE erroffset;
-
-    pcre2_code *fileNameRegexp = pcre2_compile((PCRE2_SPTR)"(?i)^\\d{8}\\.log$", PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL);
-    pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(fileNameRegexp, NULL);
+    pcre2_code *fileNamePattern = pcre2_compile((PCRE2_SPTR)"(?i)^\\d{8}\\.log$", PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL);
+    pcre2_match_data *fileNameMatchData = pcre2_match_data_create_from_pattern(fileNamePattern, NULL);
 
     for (fs::recursive_directory_iterator it("./"); it != fs::recursive_directory_iterator();)
     {
@@ -201,13 +250,90 @@ int main(int argc, const char **argv)
             isRegularFile = false;
         }
 
-        if (isRegularFile && (pcre2_match(fileNameRegexp, (PCRE2_SPTR) it->path().filename().c_str(), (PCRE2_SIZE) -1, 0, 0, match_data, NULL) > 0))
+        if (isRegularFile && (pcre2_match(fileNamePattern, (PCRE2_SPTR) it->path().filename().c_str(), (PCRE2_SIZE) -1, 0, 0, fileNameMatchData, NULL) > 0))
         {
-            std::cout << it->path().filename().c_str() << std::endl;
-        }
+            int file = open(it->path().c_str(), O_RDONLY | O_NOCTTY | O_LARGEFILE | O_NOFOLLOW | O_NONBLOCK);
 
+            if (file == -1)
+            {
+                continue;
+            }
+
+            posix_fadvise(file, 0 , 0, POSIX_FADV_SEQUENTIAL);
+
+            char* buffer = (char*) malloc(initialBufferSize);
+            char* bufferSaved = buffer;
+            char* bufferEnd = nullptr;
+            char* recordBegin = buffer;
+            char* newLine = nullptr;
+
+            ssize_t bytesRead = 0;
+
+            while ((bytesRead = read(file, bufferSaved, initialBufferSize)))
+            {
+                bufferEnd = bufferSaved + bytesRead;
+
+                while(*recordBegin == '\n' && recordBegin < bufferEnd)
+                {
+                    ++recordBegin;
+                }
+
+                while ((newLine = endLine(recordBegin, bufferEnd - recordBegin)))
+                {
+                    for(auto const& linePatternCompiled: options.linePatternsCompiled)
+                    {
+                        pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(linePatternCompiled, NULL);
+
+                        if (pcre2_match(linePatternCompiled, (PCRE2_SPTR) recordBegin, newLine - recordBegin, 0, 0, match_data, NULL) > 0)
+                        {
+                            std::cout << std::string(recordBegin, newLine - 1) << std::endl;
+                            pcre2_match_data_free(match_data);
+                            break;
+                        }
+                        else
+                        {
+                            pcre2_match_data_free(match_data);
+                        }
+                    }
+
+                    recordBegin = newLine;
+
+                    while(*recordBegin == '\n' && recordBegin < bufferEnd)
+                    {
+                        ++recordBegin;
+                    }
+
+                    if (recordBegin == bufferEnd)
+                    {
+                        break;
+                    }
+                }
+
+                if (recordBegin == bufferEnd)
+                {
+                    free(buffer);
+                    buffer = (char*) malloc(initialBufferSize);
+                    bufferSaved = buffer;
+                }
+                else
+                {
+                    size_t savedSize = bufferEnd - recordBegin;
+                    memmove(buffer, recordBegin, savedSize);
+                    buffer = (char*) realloc(buffer, savedSize + initialBufferSize);
+                    bufferSaved = buffer + savedSize;
+                }
+
+                recordBegin = buffer;
+            }
+
+            free(buffer);
+            close(file);
+        }
         it.increment(ec);
     }
+
+    pcre2_match_data_free(fileNameMatchData);
+    pcre2_code_free(fileNamePattern);
 
     return 0;
 }
