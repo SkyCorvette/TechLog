@@ -1,5 +1,4 @@
 #include <iostream>
-#include <sys/fcntl.h>
 #include <boost/program_options.hpp>
 #include <boost/filesystem/operations.hpp>
 #include "version.h"
@@ -7,10 +6,11 @@
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
 
+#include "parser.h"
+#include "file.h"
+
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
-
-static const size_t initialBufferSize = 32768;
 
 int errorcode;
 PCRE2_SIZE erroffset;
@@ -73,42 +73,6 @@ std::vector<std::string> availableEvents
     "VRSREQUEST",
     "VRSRESPONSE"
 };
-
-char* endLine(char* buf, ssize_t length)
-{
-    auto src = (const char *) buf;
-    const char* nl = nullptr;
-    const char* dq = nullptr;
-    const char* sq = nullptr;
-    auto inDQ = false;
-    auto inSQ = false;
-
-    while ((nl = (char*) memchr(src, '\n', length - (src - buf))))
-    {
-        dq = inSQ ? nullptr : (char*) memchr(src, '"', nl - src);
-        sq = inDQ ? nullptr : (char*) memchr(src, '\'', nl - src);
-
-        if ((dq && sq && dq < sq) || (dq && !sq))
-        {
-            inDQ = !inDQ;
-            src = dq + 1;
-        }
-        else if ((dq && dq > sq) || (!dq && sq))
-        {
-            inSQ = !inSQ;
-            src = sq + 1;
-        }
-        else if (!inDQ && !inSQ)
-        {
-            return (char*) nl;
-        }
-        else
-        {
-            src = nl + 1;
-        }
-    }
-    return nullptr;
-}
 
 int main(int argc, const char **argv)
 {
@@ -241,133 +205,66 @@ int main(int argc, const char **argv)
 
         if (isRegularFile && (pcre2_match(fileNamePattern, (PCRE2_SPTR) it->path().filename().c_str(), (PCRE2_SIZE) strlen(it->path().filename().c_str()), 0, 0, fileNameMatchData, NULL) > 0))
         {
-            int file = open(it->path().c_str(), O_RDONLY | O_NOCTTY | O_LARGEFILE | O_NOFOLLOW | O_NONBLOCK);
+            File file(it->path().c_str());
+            Parser parser(&file);
 
-            if (file == -1)
+            while (parser.next())
             {
-                continue;
-            }
+                auto tmp = parser.recordBegin();
+                std::string res;
+                bool printLine = false;
 
-            posix_fadvise(file, 0 , 0, POSIX_FADV_SEQUENTIAL);
-
-            char* buffer = (char*) malloc(initialBufferSize);
-            char* bufferSaved = buffer;
-            char* bufferEnd = nullptr;
-            char* recordBegin = buffer;
-            char* newLine = nullptr;
-
-            ssize_t bytesRead = 0;
-
-            int rc;
-            unsigned int lineNumber = 0;
-
-            while ((bytesRead = read(file, bufferSaved, initialBufferSize)))
-            {
-                bufferEnd = bufferSaved + bytesRead;
-
-                while(*recordBegin == '\n' && recordBegin < bufferEnd)
+                for(auto const& linePattern: options.linePatterns)
                 {
-                    ++recordBegin;
-                }
+                    pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(linePattern, NULL);
+                    auto rc = pcre2_match(linePattern, (PCRE2_SPTR) tmp, parser.recordLength() - (tmp - parser.recordBegin()), 0, 0, match_data, NULL);
 
-                while ((newLine = endLine(recordBegin, bufferEnd - recordBegin)))
-                {
-                    bool printLine = false;
-                    ++lineNumber;
-                    std::string res;
-
-                    for(auto const& linePattern: options.linePatterns)
+                    while (rc > 0)
                     {
-                        pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(linePattern, NULL);
-                        rc = pcre2_match(linePattern, (PCRE2_SPTR) recordBegin, newLine - recordBegin, 0, 0, match_data, NULL);
+                        printLine = true;
+                        ovector = pcre2_get_ovector_pointer(match_data);
 
-                        while (rc > 0)
+                        for (int i = 0; i < rc; i++)
                         {
-                            printLine = true;
-                            ovector = pcre2_get_ovector_pointer(match_data);
-
-                            for (int i = 0; i < rc; i++)
-                            {
-                                res.append(std::string(recordBegin, ovector[2 * i]));
-                                res.append(color_match);
-                                res.append(std::string(recordBegin + ovector[2 * i], ovector[2 * i + 1] - ovector[2 * i]));
-                                res.append(color_normal);
-                                recordBegin = recordBegin + ovector[2 * i + 1];
-                            }
-
-                            rc = pcre2_match(linePattern, (PCRE2_SPTR) recordBegin, newLine - recordBegin, 0, 0, match_data, NULL);
+                            res.append(std::string(tmp, ovector[2 * i]));
+                            res.append(color_match);
+                            res.append(std::string(tmp + ovector[2 * i], ovector[2 * i + 1] - ovector[2 * i]));
+                            res.append(color_normal);
+                            tmp = tmp + ovector[2 * i + 1];
                         }
-
-                        pcre2_match_data_free(match_data);
+                        rc = pcre2_match(linePattern, (PCRE2_SPTR) tmp, parser.recordLength() - (tmp - parser.recordBegin()), 0, 0, match_data, NULL);
                     }
-
-                    if (printLine)
-                    {
-                        res.append(std::string(recordBegin, newLine - recordBegin));
-
-                        if (options.fileName)
-                        {
-                            std::cout << color_filename << it->path().c_str() << ":" << color_normal;
-                        }
-
-                        if (options.lineNumber)
-                        {
-                            std::cout << color_lineno << lineNumber << ":" << color_normal;
-                        }
-
-                        std::cout << res << std::endl;
-                        linesSelected++;
-                    }
-
-                    recordBegin = newLine;
-
-                    while(*recordBegin == '\n' && recordBegin < bufferEnd)
-                    {
-                        ++recordBegin;
-                    }
-
-                    if (recordBegin == bufferEnd)
-                    {
-                        break;
-                    }
-
-                    if (options.stopAfter > 0 && linesSelected == options.stopAfter)
-                    {
-                        break;
-                    }
+                    pcre2_match_data_free(match_data);
                 }
 
-                if (recordBegin == bufferEnd)
+                if (printLine)
                 {
-                    free(buffer);
-                    buffer = (char*) malloc(initialBufferSize);
-                    bufferSaved = buffer;
-                }
-                else
-                {
-                    size_t savedSize = bufferEnd - recordBegin;
-                    memmove(buffer, recordBegin, savedSize);
-                    buffer = (char*) realloc(buffer, savedSize + initialBufferSize);
-                    bufferSaved = buffer + savedSize;
-                }
+                    res.append(std::string(tmp, parser.recordLength() - (tmp - parser.recordBegin())));
 
-                recordBegin = buffer;
+                    if (options.fileName)
+                    {
+                        std::cout << color_filename << it->path().c_str() << ":" << color_normal;
+                    }
 
+                    if (options.lineNumber)
+                    {
+                        std::cout << color_lineno << parser.recordNumber() << ":" << color_normal;
+                    }
+
+                    std::cout << res << std::endl;
+                    linesSelected++;
+                }
                 if (options.stopAfter > 0 && linesSelected == options.stopAfter)
                 {
                     break;
                 }
             }
 
-            free(buffer);
-            close(file);
+            if (options.stopAfter > 0 && linesSelected == options.stopAfter)
+            {
+                break;
+            }
         }
-
-        if(options.stopAfter > 0 && linesSelected == options.stopAfter)
-        {
-            break;
-        }
-
         it.increment(ec);
     }
 
