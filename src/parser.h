@@ -1,3 +1,6 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+
 #ifndef EXAMPLE_PARSER_H
 #define EXAMPLE_PARSER_H
 
@@ -72,8 +75,12 @@ public:
             {
                 size_t savedSize = _bufferEnd - _recordBegin;
                 memmove(_bufferBegin, _recordBegin, savedSize);
-                _bufferBegin = (char*) realloc(_bufferBegin, savedSize + _initialBufferSize);
-                _bufferPosition = _bufferBegin + savedSize;
+                char* tmp = (char*) realloc(_bufferBegin, savedSize + _initialBufferSize);
+                if (tmp)
+                {
+                    _bufferBegin = tmp;
+                    _bufferPosition = _bufferBegin + savedSize;
+                }
             }
             _recordBegin = _bufferBegin;
             _bufferEnd = nullptr;

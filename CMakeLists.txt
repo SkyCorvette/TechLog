@@ -26,3 +26,10 @@ if(Boost_FOUND)
     target_link_libraries(techlog ${Boost_LIBRARIES} pcre2-8)
 
 endif()
+
+include(PVS-Studio)
+
+pvs_studio_add_target(TARGET PVS-Analyze
+        OUTPUT FORMAT errorfile
+        ANALYZE techlog
+        LOG target.plog)
