@@ -10,7 +10,7 @@
 class File : public Reader
 {
 public:
-    File(const char* path)
+    File(const char* path) : _file(0)
     {
         _file = open(path, O_RDONLY | O_NOCTTY | O_NOFOLLOW | O_NONBLOCK);
 
@@ -29,7 +29,7 @@ public:
         close(_file);
     };
 
-    ssize_t read(char *buffer, size_t count) override
+    ssize_t read(char* buffer, size_t count)
     {
         return ::read(_file, buffer, count);
     }

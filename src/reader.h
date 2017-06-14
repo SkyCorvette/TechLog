@@ -8,6 +8,7 @@ class Reader
 {
 public:
     virtual ssize_t read(char* buffer, size_t count) = 0;
+    virtual ~Reader(){};
 };
 
 

@@ -10,7 +10,7 @@
 class StandardInput : public Reader
 {
 public:
-    ssize_t read(char *buffer, size_t count) override
+    ssize_t read(char *buffer, size_t count)
     {
         return ::read(STDIN_FILENO, buffer, count);
     }

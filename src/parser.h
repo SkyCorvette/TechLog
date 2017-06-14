@@ -12,7 +12,7 @@ class Parser
 public:
     Parser(Reader* reader) : _reader (reader)
     {
-        _bufferBegin = (char*) malloc(_initialBufferSize);
+        _bufferBegin = static_cast<char*>(malloc(_initialBufferSize));
         _bufferPosition = _bufferBegin;
         _bufferEnd = nullptr;
         _recordBegin = _bufferBegin;
@@ -24,9 +24,9 @@ public:
         return _recordBegin;
     };
 
-    unsigned long recordLength()
+    size_t recordLength()
     {
-        return _recordEnd ? _recordEnd - _recordBegin : 0;
+        return _recordEnd ? static_cast<size_t>(_recordEnd - _recordBegin) : 0;
     };
 
     unsigned long recordNumber()
@@ -68,14 +68,14 @@ public:
             else if (_recordBegin == _bufferEnd)
             {
                 free(_bufferBegin);
-                _bufferBegin = (char*) malloc(_initialBufferSize);
+                _bufferBegin = static_cast<char*>(malloc(_initialBufferSize));
                 _bufferPosition = _bufferBegin;
             }
             else
             {
-                size_t savedSize = _bufferEnd - _recordBegin;
+                size_t savedSize = static_cast<size_t>(_bufferEnd - _recordBegin);
                 memmove(_bufferBegin, _recordBegin, savedSize);
-                char* tmp = (char*) realloc(_bufferBegin, savedSize + _initialBufferSize);
+                char* tmp = static_cast<char*>(realloc(_bufferBegin, savedSize + _initialBufferSize));
                 if (tmp)
                 {
                     _bufferBegin = tmp;
@@ -106,10 +106,10 @@ private:
         auto inDQ = false;
         auto inSQ = false;
 
-        while ((sp = (char*) memchr(buf, separator, _bufferEnd - buf)))
+        while ((sp = static_cast<char*>(memchr(buf, separator, static_cast<size_t>(_bufferEnd - buf)))))
         {
-            dq = inSQ ? nullptr : (char*) memchr(buf, '"', sp - buf);
-            sq = inDQ ? nullptr : (char*) memchr(buf, '\'', sp - buf);
+            dq = inSQ ? nullptr : static_cast<char*>(memchr(buf, '"', static_cast<size_t>(sp - buf)));
+            sq = inDQ ? nullptr : static_cast<char*>(memchr(buf, '\'', static_cast<size_t>(sp - buf)));
 
             if ((dq && sq && dq < sq) || (dq && !sq))
             {

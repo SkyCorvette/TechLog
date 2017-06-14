@@ -132,7 +132,7 @@ int main(int argc, const char **argv)
         {
             for(auto const& linePattern: vm["pattern"].as<std::vector<std::string>>())
             {
-                options.linePatterns.push_back(pcre2_compile((PCRE2_SPTR) linePattern.c_str(), PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL));
+                options.linePatterns.push_back(pcre2_compile(reinterpret_cast<PCRE2_SPTR>(linePattern.c_str()), PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL));
             }
         }
 
@@ -142,7 +142,7 @@ int main(int argc, const char **argv)
 
             if (splitted.size() == 2 && unrecognizedOption.find("--") == 0)
             {
-                options.propertyPatterns.push_back(std::make_pair(splitted[0].substr(2), pcre2_compile((PCRE2_SPTR) splitted[1].c_str(), PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL)));
+                options.propertyPatterns.push_back(std::make_pair(splitted[0].substr(2), pcre2_compile(reinterpret_cast<PCRE2_SPTR>(splitted[1].c_str()), PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL)));
             }
             else
             {
@@ -192,7 +192,7 @@ int main(int argc, const char **argv)
     unsigned int linesSelected = 0;
     boost::system::error_code ec;
 
-    pcre2_code *fileNamePattern = pcre2_compile((PCRE2_SPTR)"(?i)^\\d{8}\\.log$", PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL);
+    pcre2_code *fileNamePattern = pcre2_compile(reinterpret_cast<PCRE2_SPTR>("(?i)^\\d{8}\\.log$"), PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL);
     pcre2_match_data *fileNameMatchData = pcre2_match_data_create_from_pattern(fileNamePattern, NULL);
 
     for (fs::recursive_directory_iterator it("./"); it != fs::recursive_directory_iterator();)
@@ -206,7 +206,7 @@ int main(int argc, const char **argv)
             isRegularFile = false;
         }
 
-        if (isRegularFile && (pcre2_match(fileNamePattern, (PCRE2_SPTR) it->path().filename().c_str(), (PCRE2_SIZE) strlen(it->path().filename().c_str()), 0, 0, fileNameMatchData, NULL) > 0))
+        if (isRegularFile && (pcre2_match(fileNamePattern, reinterpret_cast<PCRE2_SPTR>(it->path().filename().c_str()), PCRE2_ZERO_TERMINATED, 0, 0, fileNameMatchData, NULL) > 0))
         {
             File file(it->path().c_str());
             Parser parser(&file);
@@ -220,7 +220,7 @@ int main(int argc, const char **argv)
                 for(auto const& linePattern: options.linePatterns)
                 {
                     pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(linePattern, NULL);
-                    auto rc = pcre2_match(linePattern, (PCRE2_SPTR) tmp, parser.recordLength() - (tmp - parser.recordBegin()), 0, 0, match_data, NULL);
+                    auto rc = pcre2_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), parser.recordLength() - static_cast<size_t>(tmp - parser.recordBegin()), 0, 0, match_data, NULL);
 
                     while (rc > 0)
                     {
@@ -235,14 +235,14 @@ int main(int argc, const char **argv)
                             res.append(color_normal);
                             tmp = tmp + ovector[2 * i + 1];
                         }
-                        rc = pcre2_match(linePattern, (PCRE2_SPTR) tmp, parser.recordLength() - (tmp - parser.recordBegin()), 0, 0, match_data, NULL);
+                        rc = pcre2_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), parser.recordLength() - static_cast<size_t>(tmp - parser.recordBegin()), 0, 0, match_data, NULL);
                     }
                     pcre2_match_data_free(match_data);
                 }
 
                 if (printLine)
                 {
-                    res.append(std::string(tmp, parser.recordLength() - (tmp - parser.recordBegin())));
+                    res.append(std::string(tmp, parser.recordLength() - static_cast<size_t>(tmp - parser.recordBegin())));
 
                     if (options.fileName)
                     {
