@@ -1,8 +1,8 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#ifndef EXAMPLE_PARSER_H
-#define EXAMPLE_PARSER_H
+#ifndef PARSER_H
+#define PARSER_H
 
 #include <iostream>
 #include "reader.h"
@@ -40,7 +40,7 @@ public:
         {
             if (!_bufferEnd)
             {
-                ssize_t bytesRead = _reader->read(_bufferPosition, _initialBufferSize);
+                ssize_t bytesRead = _reader->readNext(_bufferPosition, _initialBufferSize);
 
                 if (!bytesRead)
                 {
@@ -134,4 +134,4 @@ private:
     }
 };
 
-#endif //EXAMPLE_PARSER_H
+#endif //PARSER_H

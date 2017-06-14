@@ -1,8 +1,8 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#ifndef EXAMPLE_FILE_H
-#define EXAMPLE_FILE_H
+#ifndef FILE_H
+#define FILE_H
 
 #include <fcntl.h>
 #include "reader.h"
@@ -29,12 +29,12 @@ public:
         close(_file);
     };
 
-    ssize_t read(char* buffer, size_t count)
+    ssize_t readNext(char* buffer, size_t count)
     {
-        return ::read(_file, buffer, count);
+        return read(_file, buffer, count);
     }
 private:
     int _file;
 };
 
-#endif //EXAMPLE_FILE_H
+#endif //FILE_H
