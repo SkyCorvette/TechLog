@@ -168,7 +168,7 @@ int main(int argc, const char **argv)
     {
         std::cout << "usage: techlog [-fl] [-s num] [-p pattern] [--event] [--property=pattern] [pattern]" << std::endl;
 
-        if (!options.help)
+        if (!options.help && !options.helpEvents)
         {
             return 1;
         }
