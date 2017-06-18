@@ -1,15 +1,24 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
+
+set(CMAKE_C_COMPILER gcc)
+set(CMAKE_CXX_COMPILER g++)
+
 project(techlog)
 
-set (VERSION_MAJOR 1)
-set (VERSION_MINOR 0)
+set(VERSION_MAJOR 1)
+set(VERSION_MINOR 0)
 
-configure_file (
-    "${PROJECT_SOURCE_DIR}/src/version.h.in"
-    "${PROJECT_SOURCE_DIR}/src/version.h"
+configure_file(
+        "${PROJECT_SOURCE_DIR}/src/version.h.in"
+        "${PROJECT_SOURCE_DIR}/src/version.h"
 )
 
-set(CMAKE_CXX_STANDARD 14)
+set_target_properties(
+        ${TARGET} PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED YES
+        CXX_EXTENSIONS NO
+)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
@@ -43,8 +52,10 @@ endif()
 
 include(PVS-Studio)
 
-pvs_studio_add_target(TARGET PVS-Analyze
+pvs_studio_add_target(
+        TARGET PVS-Analyze
         OUTPUT FORMAT errorfile
         ANALYZE techlog
         CONFIG "/usr/bin/PVS-Studio.cfg"
-        LOG techlog.plog)
+        LOG techlog.plog
+)
