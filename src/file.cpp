@@ -3,7 +3,7 @@
 
 #include "file.h"
 
-File::File(const char* path) : _file(0)
+File::File(const char* path)
 {
     _file = open(path, O_RDONLY | O_NOCTTY | O_NOFOLLOW | O_NONBLOCK);
 

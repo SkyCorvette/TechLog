@@ -12,7 +12,7 @@ public:
     ~File();
     ssize_t readNext(char* buffer, size_t count);
 private:
-    int _file;
+    int _file = 0;
 };
 
 #endif //FILE_H
