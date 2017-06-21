@@ -9,6 +9,9 @@ class Parser
 {
 public:
     Parser(Reader* reader);
+    ~Parser();
+    Parser(const Parser &parser);
+    Parser & operator=(const Parser &parser);
 
     const char* recordBegin();
     size_t recordLength();

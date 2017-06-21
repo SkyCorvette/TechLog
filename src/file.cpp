@@ -11,7 +11,7 @@ File::File(const char* path)
 
     unsigned tmp = 0;
 
-    if ((::pread(_file, &tmp, 3, 0) == 3) && (tmp & 0xffbfbbef))
+    if ((::pread(_file, &tmp, 3, 0) == 3) && (tmp == 0xBFBBEF))
     {
         lseek(_file, 3, SEEK_SET);
     }

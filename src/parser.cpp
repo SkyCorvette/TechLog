@@ -3,13 +3,18 @@
 
 #include "parser.h"
 
-Parser::Parser(Reader* reader) : _reader (reader)
+Parser::Parser(Reader* reader) : _reader(reader)
 {
     _bufferBegin = static_cast<char*>(malloc(_initialBufferSize));
     _bufferPosition = _bufferBegin;
     _bufferEnd = nullptr;
     _recordBegin = _bufferBegin;
     _recordEnd = nullptr;
+}
+
+Parser::~Parser()
+{
+    free(_bufferBegin);
 }
 
 const char* Parser::recordBegin()
