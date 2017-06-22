@@ -22,6 +22,63 @@ static const std::string color_match    {"\x1B[31;1m\x1B[K"}; // 31=red, 1=bold
 static const std::string color_lineno   {"\x1B[33;1m\x1B[K"}; // 33=yellow, 1=bold
 static const std::string color_normal   {"\x1B[0m\x1B[K"};    // Reset/normal (all attributes off).
 
+unsigned int match(Parser* parser, Options* options, fs::recursive_directory_iterator it)
+{
+    PCRE2_SIZE *ovector;
+    auto tmp = strndupa(parser->recordBegin(), parser->recordLength());
+    //auto tmp = parser.recordBegin();
+    std::string res;
+    auto printLine = false;
+
+    for(auto const& linePattern: options->linePatterns())
+    {
+        pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(linePattern, NULL);
+        auto rc = pcre2_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), PCRE2_ZERO_TERMINATED, 0, 0, match_data, NULL);
+        //auto rc = pcre2_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), parser.recordLength() - static_cast<size_t>(tmp - parser.recordBegin()), 0, 0, match_data, NULL);
+
+        while (rc > 0)
+        {
+            printLine = true;
+            ovector = pcre2_get_ovector_pointer(match_data);
+
+            for (int i = 0; i < rc; i++)
+            {
+                res.append(std::string(tmp, ovector[2 * i]));
+                res.append(color_match);
+                res.append(std::string(tmp + ovector[2 * i], ovector[2 * i + 1] - ovector[2 * i]));
+                res.append(color_normal);
+                tmp = tmp + ovector[2 * i + 1];
+            }
+            rc = pcre2_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), PCRE2_ZERO_TERMINATED, 0, 0, match_data, NULL);
+            //rc = pcre2_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), parser.recordLength() - static_cast<size_t>(tmp - parser.recordBegin()), 0, 0, match_data, NULL);
+        }
+        pcre2_match_data_free(match_data);
+    }
+
+    if (printLine)
+    {
+        res.append(tmp);
+        //res.append(std::string(tmp, parser.recordLength() - static_cast<size_t>(tmp - parser.recordBegin())));
+
+        if (options->fileName())
+        {
+            std::cout << color_filename << it->path().c_str() << ":" << color_normal;
+        }
+
+        if (options->lineNumber())
+        {
+            std::cout << color_lineno << parser->recordNumber() << ":" << color_normal;
+        }
+
+        std::cout << res << std::endl;
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
 int main(int argc, const char **argv)
 {
     Options options;
@@ -66,8 +123,6 @@ int main(int argc, const char **argv)
         return 1;
     }
 
-    PCRE2_SIZE *ovector;
-
     bool isRegularFile;
     unsigned int linesSelected = 0;
     boost::system::error_code ec;
@@ -93,50 +148,8 @@ int main(int argc, const char **argv)
 
             while (parser.next())
             {
-                auto tmp = parser.recordBegin();
-                std::string res;
-                auto printLine = false;
+                linesSelected += match(&parser, &options, it);
 
-                for(auto const& linePattern: options.linePatterns())
-                {
-                    pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(linePattern, NULL);
-                    auto rc = pcre2_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), parser.recordLength() - static_cast<size_t>(tmp - parser.recordBegin()), 0, 0, match_data, NULL);
-
-                    while (rc > 0)
-                    {
-                        printLine = true;
-                        ovector = pcre2_get_ovector_pointer(match_data);
-
-                        for (int i = 0; i < rc; i++)
-                        {
-                            res.append(std::string(tmp, ovector[2 * i]));
-                            res.append(color_match);
-                            res.append(std::string(tmp + ovector[2 * i], ovector[2 * i + 1] - ovector[2 * i]));
-                            res.append(color_normal);
-                            tmp = tmp + ovector[2 * i + 1];
-                        }
-                        rc = pcre2_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), parser.recordLength() - static_cast<size_t>(tmp - parser.recordBegin()), 0, 0, match_data, NULL);
-                    }
-                    pcre2_match_data_free(match_data);
-                }
-
-                if (printLine)
-                {
-                    res.append(std::string(tmp, parser.recordLength() - static_cast<size_t>(tmp - parser.recordBegin())));
-
-                    if (options.fileName())
-                    {
-                        std::cout << color_filename << it->path().c_str() << ":" << color_normal;
-                    }
-
-                    if (options.lineNumber())
-                    {
-                        std::cout << color_lineno << parser.recordNumber() << ":" << color_normal;
-                    }
-
-                    std::cout << res << std::endl;
-                    linesSelected++;
-                }
                 if (options.stopAfter() > 0 && linesSelected == options.stopAfter())
                 {
                     break;
