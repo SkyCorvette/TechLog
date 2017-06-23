@@ -26,15 +26,13 @@ unsigned int match(Parser* parser, Options* options, fs::recursive_directory_ite
 {
     PCRE2_SIZE *ovector;
     auto tmp = strndupa(parser->recordBegin(), parser->recordLength());
-    //auto tmp = parser.recordBegin();
     std::string res;
     auto printLine = false;
 
     for(auto const& linePattern: options->linePatterns())
     {
         pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(linePattern, NULL);
-        auto rc = pcre2_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), PCRE2_ZERO_TERMINATED, 0, 0, match_data, NULL);
-        //auto rc = pcre2_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), parser.recordLength() - static_cast<size_t>(tmp - parser.recordBegin()), 0, 0, match_data, NULL);
+        auto rc = pcre2_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), strlen(tmp), 0, 0, match_data, NULL);
 
         while (rc > 0)
         {
@@ -49,8 +47,7 @@ unsigned int match(Parser* parser, Options* options, fs::recursive_directory_ite
                 res.append(color_normal);
                 tmp = tmp + ovector[2 * i + 1];
             }
-            rc = pcre2_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), PCRE2_ZERO_TERMINATED, 0, 0, match_data, NULL);
-            //rc = pcre2_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), parser.recordLength() - static_cast<size_t>(tmp - parser.recordBegin()), 0, 0, match_data, NULL);
+            rc = pcre2_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), strlen(tmp), 0, 0, match_data, NULL);
         }
         pcre2_match_data_free(match_data);
     }
@@ -58,7 +55,6 @@ unsigned int match(Parser* parser, Options* options, fs::recursive_directory_ite
     if (printLine)
     {
         res.append(tmp);
-        //res.append(std::string(tmp, parser.recordLength() - static_cast<size_t>(tmp - parser.recordBegin())));
 
         if (options->fileName())
         {

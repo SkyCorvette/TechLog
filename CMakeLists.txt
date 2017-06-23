@@ -20,6 +20,7 @@ set_target_properties(
         CXX_EXTENSIONS NO
 )
 
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic")
