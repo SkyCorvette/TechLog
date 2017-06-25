@@ -8,7 +8,7 @@
 class StandardInput : public Reader
 {
 public:
-    ssize_t readNext(char *buffer, size_t count);
+    ssize_t readNext(char *buffer, size_t count) override;
 };
 
 #endif //STANDARDINPUT_H

@@ -85,6 +85,11 @@ bool Parser::next()
     }
 }
 
+const char* Parser::fileName()
+{
+    return _reader->fileName();
+}
+
 char* Parser::findFirst(const char separator)
 {
     auto buf = _recordBegin;

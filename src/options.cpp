@@ -68,6 +68,7 @@ void Options::run(int argc, const char **argv)
             for(auto const& linePattern: vm["pattern"].as<std::vector<std::string>>())
             {
                 _linePatterns.push_back(pcre2_compile(reinterpret_cast<PCRE2_SPTR>(linePattern.c_str()), PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL));
+                pcre2_jit_compile(_linePatterns.back(), PCRE2_JIT_COMPLETE);
             }
         }
 
@@ -78,6 +79,7 @@ void Options::run(int argc, const char **argv)
             if (splitted.size() == 2 && unrecognizedOption.find("--") == 0)
             {
                 _propertyPatterns.push_back(std::make_pair(splitted[0].substr(2), pcre2_compile(reinterpret_cast<PCRE2_SPTR>(splitted[1].c_str()), PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL)));
+                pcre2_jit_compile(_propertyPatterns.back().second, PCRE2_JIT_COMPLETE);
             }
             else
             {

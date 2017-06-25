@@ -9,10 +9,14 @@ class File : public Reader
 {
 public:
     File(const char* path);
-    ~File();
-    ssize_t readNext(char* buffer, size_t count);
+    File(const File&);
+    File& operator=(const File&);
+    ~File() override;
+    ssize_t readNext(char* buffer, size_t count) override;
+    const char* fileName() override;
 private:
     int _file = 0;
+    const char* _fileName;
 };
 
 #endif //FILE_H

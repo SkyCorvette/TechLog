@@ -3,7 +3,7 @@
 
 #include "file.h"
 
-File::File(const char* path)
+File::File(const char* path) : _fileName(path)
 {
     _file = open(path, O_RDONLY | O_NOCTTY | O_NOFOLLOW | O_NONBLOCK);
 
@@ -25,4 +25,9 @@ File::~File()
 ssize_t File::readNext(char* buffer, size_t count)
 {
     return read(_file, buffer, count);
+}
+
+const char* File::fileName()
+{
+    return _fileName;
 }

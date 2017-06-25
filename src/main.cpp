@@ -22,7 +22,7 @@ static const std::string color_match    {"\x1B[31;1m\x1B[K"}; // 31=red, 1=bold
 static const std::string color_lineno   {"\x1B[33;1m\x1B[K"}; // 33=yellow, 1=bold
 static const std::string color_normal   {"\x1B[0m\x1B[K"};    // Reset/normal (all attributes off).
 
-unsigned int match(Parser* parser, Options* options, fs::recursive_directory_iterator it)
+inline unsigned int match(Parser* parser, Options* options)
 {
     PCRE2_SIZE *ovector;
     auto tmp = strndupa(parser->recordBegin(), parser->recordLength());
@@ -32,7 +32,7 @@ unsigned int match(Parser* parser, Options* options, fs::recursive_directory_ite
     for(auto const& linePattern: options->linePatterns())
     {
         pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(linePattern, NULL);
-        auto rc = pcre2_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), strlen(tmp), 0, 0, match_data, NULL);
+        auto rc = pcre2_jit_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), strlen(tmp), 0, 0, match_data, NULL);
 
         while (rc > 0)
         {
@@ -47,7 +47,7 @@ unsigned int match(Parser* parser, Options* options, fs::recursive_directory_ite
                 res.append(color_normal);
                 tmp = tmp + ovector[2 * i + 1];
             }
-            rc = pcre2_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), strlen(tmp), 0, 0, match_data, NULL);
+            rc = pcre2_jit_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), strlen(tmp), 0, 0, match_data, NULL);
         }
         pcre2_match_data_free(match_data);
     }
@@ -58,7 +58,7 @@ unsigned int match(Parser* parser, Options* options, fs::recursive_directory_ite
 
         if (options->fileName())
         {
-            std::cout << color_filename << it->path().c_str() << ":" << color_normal;
+            std::cout << color_filename << parser->fileName() << ":" << color_normal;
         }
 
         if (options->lineNumber())
@@ -124,6 +124,7 @@ int main(int argc, const char **argv)
     boost::system::error_code ec;
 
     pcre2_code *fileNamePattern = pcre2_compile(reinterpret_cast<PCRE2_SPTR>("(?i)^\\d{8}\\.log$"), PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL);
+    pcre2_jit_compile(fileNamePattern, PCRE2_JIT_COMPLETE);
     pcre2_match_data *fileNameMatchData = pcre2_match_data_create_from_pattern(fileNamePattern, NULL);
 
     for (fs::recursive_directory_iterator it("./"); it != fs::recursive_directory_iterator();)
@@ -137,14 +138,14 @@ int main(int argc, const char **argv)
             isRegularFile = false;
         }
 
-        if (isRegularFile && (pcre2_match(fileNamePattern, reinterpret_cast<PCRE2_SPTR>(it->path().filename().c_str()), PCRE2_ZERO_TERMINATED, 0, 0, fileNameMatchData, NULL) > 0))
+        if (isRegularFile && (pcre2_jit_match(fileNamePattern, reinterpret_cast<PCRE2_SPTR>(it->path().filename().c_str()), it->path().filename().size(), 0, 0, fileNameMatchData, NULL) > 0))
         {
             File file(it->path().c_str());
             Parser parser(&file);
 
             while (parser.next())
             {
-                linesSelected += match(&parser, &options, it);
+                linesSelected += match(&parser, &options);
 
                 if (options.stopAfter() > 0 && linesSelected == options.stopAfter())
                 {
