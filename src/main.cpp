@@ -47,7 +47,13 @@ inline unsigned int match(Parser* parser, Options* options)
                 res.append(color_normal);
                 tmp = tmp + ovector[2 * i + 1];
             }
-            rc = pcre2_jit_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), strlen(tmp), 0, 0, match_data, NULL);
+
+            rc = 0;
+
+            if (strlen(tmp) > 0)
+            {
+                rc = pcre2_jit_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), strlen(tmp), 0, 0, match_data, NULL);
+            }
         }
         pcre2_match_data_free(match_data);
     }
