@@ -17,9 +17,9 @@ namespace fs = boost::filesystem;
 int errorcode;
 PCRE2_SIZE erroffset;
 
-static const std::string color_filename {"\x1B[32;1m\x1B[K"}; // 32=green, 1=bold
+static const std::string color_filename {"\x1B[34;1m\x1B[K"}; // 32=blue, 1=bold
 static const std::string color_match    {"\x1B[31;1m\x1B[K"}; // 31=red, 1=bold
-static const std::string color_lineno   {"\x1B[33;1m\x1B[K"}; // 33=yellow, 1=bold
+static const std::string color_lineno   {"\x1B[32;1m\x1B[K"}; // 33=green, 1=bold
 static const std::string color_normal   {"\x1B[0m\x1B[K"};    // Reset/normal (all attributes off).
 
 inline unsigned int match(Parser* parser, Options* options)
@@ -123,7 +123,7 @@ int main(int argc, const char **argv)
     unsigned int linesSelected = 0;
     boost::system::error_code ec;
 
-    pcre2_code *fileNamePattern = pcre2_compile(reinterpret_cast<PCRE2_SPTR>("(?i)^\\d{8}\\.log$"), PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL);
+    pcre2_code *fileNamePattern = pcre2_compile(reinterpret_cast<PCRE2_SPTR>("^\\d{8}\\.log$"), PCRE2_ZERO_TERMINATED, PCRE2_CASELESS, &errorcode, &erroffset, NULL);
     pcre2_jit_compile(fileNamePattern, PCRE2_JIT_COMPLETE);
     pcre2_match_data *fileNameMatchData = pcre2_match_data_create_from_pattern(fileNamePattern, NULL);
 
@@ -131,9 +131,9 @@ int main(int argc, const char **argv)
     {
         try
         {
-            isRegularFile = boost::filesystem::is_regular_file(it->path());
+            isRegularFile = fs::is_regular_file(it->path());
         }
-        catch (const boost::filesystem::filesystem_error& ex)
+        catch (const fs::filesystem_error& ex)
         {
             isRegularFile = false;
         }

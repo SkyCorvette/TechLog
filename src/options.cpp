@@ -6,6 +6,7 @@
 Options::Options()
 {
     _patternOptions.add_options()("pattern,p", po::value<std::vector<std::string>>()->multitoken(), ": use pattern ARG for matching");
+    _patternOptions.add_options()("ignore-case,i", po::bool_switch(&_ignoreCase), ": ignore case distinctions");
 
     _miscOptions.add_options()("version", po::bool_switch(&_version), ": display version information and exit");
     _miscOptions.add_options()("help", po::bool_switch(&_help), ": display this help and exit");
@@ -67,7 +68,7 @@ void Options::run(int argc, const char **argv)
         {
             for(auto const& linePattern: vm["pattern"].as<std::vector<std::string>>())
             {
-                _linePatterns.push_back(pcre2_compile(reinterpret_cast<PCRE2_SPTR>(linePattern.c_str()), PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL));
+                _linePatterns.push_back(pcre2_compile(reinterpret_cast<PCRE2_SPTR>(linePattern.c_str()), PCRE2_ZERO_TERMINATED, ignoreCase() ? PCRE2_CASELESS : 0, &errorcode, &erroffset, NULL));
                 pcre2_jit_compile(_linePatterns.back(), PCRE2_JIT_COMPLETE);
             }
         }
@@ -78,7 +79,7 @@ void Options::run(int argc, const char **argv)
 
             if (splitted.size() == 2 && unrecognizedOption.find("--") == 0)
             {
-                _propertyPatterns.push_back(std::make_pair(splitted[0].substr(2), pcre2_compile(reinterpret_cast<PCRE2_SPTR>(splitted[1].c_str()), PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL)));
+                _propertyPatterns.push_back(std::make_pair(splitted[0].substr(2), pcre2_compile(reinterpret_cast<PCRE2_SPTR>(splitted[1].c_str()), PCRE2_ZERO_TERMINATED, ignoreCase() ? PCRE2_CASELESS : 0, &errorcode, &erroffset, NULL)));
                 pcre2_jit_compile(_propertyPatterns.back().second, PCRE2_JIT_COMPLETE);
             }
             else
@@ -121,6 +122,11 @@ bool Options::fileName()
 bool Options::lineNumber()
 {
     return _lineNumber;
+}
+
+bool Options::ignoreCase()
+{
+    return _ignoreCase;
 }
 
 std::vector<pcre2_code*> Options::linePatterns()

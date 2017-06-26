@@ -10,8 +10,6 @@ class Parser
 public:
     Parser(Reader* reader);
     ~Parser();
-    Parser(const Parser &parser);
-    Parser& operator=(const Parser &parser);
 
     const char* recordBegin();
     size_t recordLength();
@@ -27,9 +25,12 @@ private:
     char* _recordBegin = nullptr;
     char* _recordEnd = nullptr;
     unsigned long _recordNumber = 0;
-    unsigned long _initialBufferSize = 32768;
+    const unsigned long _initialBufferSize = 32768;
 
     char* findFirst(const char separator);
+
+    Parser(const Parser &parser);
+    Parser& operator=(const Parser &parser);
 };
 
 #endif //PARSER_H

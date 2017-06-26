@@ -21,6 +21,7 @@ public:
     unsigned int stopAfter();
     bool fileName();
     bool lineNumber();
+    bool ignoreCase();
     std::vector<pcre2_code*> linePatterns();
     std::vector<std::pair<std::string, pcre2_code*>> propertyPatterns();
     std::vector<std::string> events();
@@ -35,6 +36,7 @@ private:
     unsigned int _stopAfter = 0;
     bool _fileName = false;
     bool _lineNumber = false;
+    bool _ignoreCase = false;
     std::vector<pcre2_code*> _linePatterns{};
     std::vector<std::pair<std::string, pcre2_code*>> _propertyPatterns{};
     std::vector<std::string> _events{};
