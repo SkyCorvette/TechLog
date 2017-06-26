@@ -99,7 +99,7 @@ int main(int argc, const char **argv)
 
     if (!options.linePatterns().size() && !options.propertyPatterns().size() && !options.events().size())
     {
-        std::cout << "usage: techlog [-fl] [-s num] [-p pattern] [--event] [--property=pattern] [pattern]" << std::endl;
+        std::cout << "usage: techlog [-ifl] [-s num] [-p pattern] [--event] [--property=pattern] [pattern]" << std::endl;
 
         if (!options.help() && !options.helpEvents())
         {
