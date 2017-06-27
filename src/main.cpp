@@ -32,9 +32,10 @@ inline unsigned int match(Parser* parser, Options* options)
     for(auto const& linePattern: options->linePatterns())
     {
         pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(linePattern, NULL);
-        auto rc = pcre2_jit_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), strlen(tmp), 0, 0, match_data, NULL);
 
-        while (rc > 0)
+        auto rc = 0;
+
+        while ((strlen(tmp) > 0) && (rc = pcre2_jit_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), strlen(tmp), 0, 0, match_data, NULL) > 0))
         {
             printLine = true;
             ovector = pcre2_get_ovector_pointer(match_data);
@@ -46,13 +47,6 @@ inline unsigned int match(Parser* parser, Options* options)
                 res.append(std::string(tmp + ovector[2 * i], ovector[2 * i + 1] - ovector[2 * i]));
                 res.append(color_normal);
                 tmp = tmp + ovector[2 * i + 1];
-            }
-
-            rc = 0;
-
-            if (strlen(tmp) > 0)
-            {
-                rc = pcre2_jit_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), strlen(tmp), 0, 0, match_data, NULL);
             }
         }
         pcre2_match_data_free(match_data);
