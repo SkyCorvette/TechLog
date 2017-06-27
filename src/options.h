@@ -18,7 +18,7 @@ public:
     bool version();
     bool help();
     bool helpEvents();
-    unsigned int stopAfter();
+    unsigned stopAfter();
     bool fileName();
     bool lineNumber();
     bool ignoreCase();
@@ -33,7 +33,7 @@ private:
     bool _version = false;
     bool _help = false;
     bool _helpEvents = false;
-    unsigned int _stopAfter = 0;
+    unsigned _stopAfter = 0;
     bool _fileName = false;
     bool _lineNumber = false;
     bool _ignoreCase = false;

@@ -120,7 +120,7 @@ int main(int argc, const char **argv)
     }
 
     bool isRegularFile;
-    unsigned int linesSelected = 0;
+    long unsigned linesSelected = 0;
     boost::system::error_code ec;
 
     pcre2_code *fileNamePattern = pcre2_compile(reinterpret_cast<PCRE2_SPTR>("^\\d{8}\\.log$"), PCRE2_ZERO_TERMINATED, PCRE2_CASELESS, &errorcode, &erroffset, NULL);

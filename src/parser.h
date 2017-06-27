@@ -13,7 +13,7 @@ public:
 
     const char* recordBegin();
     size_t recordLength();
-    unsigned long recordNumber();
+    long unsigned recordNumber();
     bool next();
     const char* fileName();
 
@@ -24,8 +24,8 @@ private:
     char* _bufferEnd = nullptr;
     char* _recordBegin = nullptr;
     char* _recordEnd = nullptr;
-    unsigned long _recordNumber = 0;
-    const unsigned long _initialBufferSize = 32768;
+    long unsigned _recordNumber = 0;
+    const long unsigned _initialBufferSize = 32768;
 
     char* findFirst(const char separator);
 
