@@ -33,7 +33,7 @@ inline unsigned int match(Parser* parser, Options* options)
         pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(linePattern, NULL);
         auto rc = 0;
 
-        while ((strlen(tmp) > 0) && (rc = pcre2_jit_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), strlen(tmp), 0, 0, match_data, NULL) > 0))
+        while ((strlen(tmp) > 0) && ((rc = pcre2_jit_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), strlen(tmp), 0, 0, match_data, NULL)) > 0))
         {
             if (!printLine && options->fileName())
             {
