@@ -22,7 +22,7 @@ set_target_properties(
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Weffc++")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64 -Ofast -flto -march=native -funroll-loops")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++ -lpthread -m64 -Ofast -flto -march=native -funroll-loops")
 
 file(GLOB SOURCE_FILES src/*.cpp)
 add_executable(techlog ${SOURCE_FILES})
@@ -31,14 +31,15 @@ set(Boost_USE_STATIC_LIBS    ON)
 set(Boost_USE_MULTITHREADED  ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 
-find_library(PCRE_LIBRARY STATIC pcre2-8)
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+find_library(PCRE2_LIBRARIES pcre2-8)
 
 find_package(Boost 1.64.0 COMPONENTS program_options filesystem)
 
 if(Boost_FOUND)
 
     include_directories(${Boost_INCLUDE_DIRS})
-    target_link_libraries(techlog ${Boost_LIBRARIES} ${PCRE_LIBRARY})
+    target_link_libraries(techlog ${Boost_LIBRARIES} ${PCRE2_LIBRARIES})
 
 endif()
 

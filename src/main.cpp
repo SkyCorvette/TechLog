@@ -26,26 +26,38 @@ inline unsigned int match(Parser* parser, Options* options)
 {
     PCRE2_SIZE *ovector;
     auto tmp = strndupa(parser->recordBegin(), parser->recordLength());
-    std::string res;
     auto printLine = false;
 
     for(auto const& linePattern: options->linePatterns())
     {
         pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(linePattern, NULL);
-
         auto rc = 0;
 
         while ((strlen(tmp) > 0) && (rc = pcre2_jit_match(linePattern, reinterpret_cast<PCRE2_SPTR>(tmp), strlen(tmp), 0, 0, match_data, NULL) > 0))
         {
+            if (!printLine && options->fileName())
+            {
+                std::cerr << color_filename;
+                std::cout << parser->fileName() << ":";
+                std::cerr << color_normal;
+            }
+
+            if (!printLine && options->lineNumber())
+            {
+                std::cerr << color_lineno;
+                std::cout << parser->recordNumber() << ":";
+                std::cerr << color_normal;
+            }
+
             printLine = true;
             ovector = pcre2_get_ovector_pointer(match_data);
 
             for (int i = 0; i < rc; i++)
             {
-                res.append(std::string(tmp, ovector[2 * i]));
-                res.append(color_match);
-                res.append(std::string(tmp + ovector[2 * i], ovector[2 * i + 1] - ovector[2 * i]));
-                res.append(color_normal);
+                std::cout << std::string(tmp, ovector[2 * i]);
+                std::cerr << color_match;
+                std::cout << std::string(tmp + ovector[2 * i], ovector[2 * i + 1] - ovector[2 * i]);
+                std::cerr << color_normal;
                 tmp = tmp + ovector[2 * i + 1];
             }
         }
@@ -54,19 +66,7 @@ inline unsigned int match(Parser* parser, Options* options)
 
     if (printLine)
     {
-        res.append(tmp);
-
-        if (options->fileName())
-        {
-            std::cout << color_filename << parser->fileName() << ":" << color_normal;
-        }
-
-        if (options->lineNumber())
-        {
-            std::cout << color_lineno << parser->recordNumber() << ":" << color_normal;
-        }
-
-        std::cout << res << std::endl;
+        std::cout << tmp << std::endl;
         return 1;
     }
     else
