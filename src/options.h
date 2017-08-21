@@ -1,13 +1,12 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
-#include <vector>
-#include <string>
 #include <boost/program_options.hpp>
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
 
-namespace po = boost::program_options;
+using namespace std;
+using namespace boost::program_options;
 
 class Options
 {
@@ -22,12 +21,12 @@ public:
     bool fileName();
     bool lineNumber();
     bool ignoreCase();
-    std::vector<pcre2_code*> linePatterns();
-    std::vector<std::pair<std::string, pcre2_code*>> propertyPatterns();
-    std::vector<std::string> events();
+    vector<pcre2_code*> linePatterns();
+    vector<pair<string, pcre2_code_8 *> > propertyPatterns();
+    vector<string> events();
 
-    po::options_description visibleOptions();
-    po::options_description eventOptions();
+    options_description visibleOptions();
+    options_description eventOptions();
 
 private:
     bool _version = false;
@@ -37,20 +36,20 @@ private:
     bool _fileName = false;
     bool _lineNumber = false;
     bool _ignoreCase = false;
-    std::vector<pcre2_code*> _linePatterns{};
-    std::vector<std::pair<std::string, pcre2_code*>> _propertyPatterns{};
-    std::vector<std::string> _events{};
+    vector<pcre2_code*> _linePatterns{};
+    vector<pair<string, pcre2_code_8 *> > _propertyPatterns{};
+    vector<string> _events{};
 
-    po::options_description _allOptions{"Allowed options"};
-    po::options_description _visibleOptions{"Allowed options"};
+    options_description _allOptions{"Allowed options"};
+    options_description _visibleOptions{"Allowed options"};
 
-    po::options_description _patternOptions{"Patterns"};
-    po::options_description _miscOptions{"Miscellaneous"};
-    po::options_description _outputOptions{"Output control"};
-    po::options_description _eventOptions{"Events"};
-    po::positional_options_description _positionalOptions{};
+    options_description _patternOptions{"Patterns"};
+    options_description _miscOptions{"Miscellaneous"};
+    options_description _outputOptions{"Output control"};
+    options_description _eventOptions{"Events"};
+    positional_options_description _positionalOptions{};
 
-    const std::vector<std::string> _availableEvents
+    const vector<string> _availableEvents
     {
         "ADMIN", "ATTN", "CALL", "CONN", "CONFLOADFROMFILES", "CLSTR", "DB2", "DBMSSQL", "DBMSSQLCONN",
         "DBPOSTGRS", "DBORACLE", "DBV8DBENG", "EDS", "EXCP", "EXCPCNTX", "InputByString", "FTEXTCheck",

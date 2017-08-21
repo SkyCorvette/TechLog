@@ -68,9 +68,9 @@ bool Parser::next()
         }
         else
         {
-            size_t savedSize = static_cast<size_t>(_bufferEnd - _recordBegin);
+            auto savedSize = static_cast<size_t>(_bufferEnd - _recordBegin);
             memmove(_bufferBegin, _recordBegin, savedSize);
-            char* tmp = static_cast<char*>(realloc(_bufferBegin, savedSize + _initialBufferSize));
+            auto tmp = static_cast<char*>(realloc(_bufferBegin, savedSize + _initialBufferSize));
             if (tmp)
             {
                 _bufferBegin = tmp;

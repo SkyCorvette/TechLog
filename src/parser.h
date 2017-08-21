@@ -2,13 +2,13 @@
 #define PARSER_H
 
 #include <iostream>
-#include <string.h>
+#include <cstring>
 #include "reader.h"
 
 class Parser
 {
 public:
-    Parser(Reader* reader);
+    explicit Parser(Reader* reader);
     ~Parser();
 
     const char* recordBegin();
@@ -27,7 +27,7 @@ private:
     long unsigned _recordNumber = 0;
     const long unsigned _initialBufferSize = 32768;
 
-    char* findFirst(const char separator);
+    char* findFirst(char separator);
 
     Parser(const Parser &parser);
     Parser& operator=(const Parser &parser);
