@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 
-set(CMAKE_C_COMPILER clang)
-set(CMAKE_CXX_COMPILER clang++)
+set(CMAKE_C_COMPILER gcc)
+set(CMAKE_CXX_COMPILER g++)
 
 project(techlog)
 
@@ -41,7 +41,7 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
 find_library(PCRE2_LIBRARIES pcre2-8)
 
-find_package(Boost 1.64.0 COMPONENTS program_options filesystem)
+find_package(Boost 1.65.1 COMPONENTS program_options filesystem)
 
 if(Boost_FOUND)
 

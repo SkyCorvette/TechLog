@@ -1,7 +1,6 @@
 #include "options.h"
 
-Options::Options()
-{
+Options::Options() {
     _patternOptions.add_options()("pattern,p", value<vector<string>>()->multitoken(), ": use pattern ARG for matching");
     _patternOptions.add_options()("ignore-case,i", bool_switch(&_ignoreCase), ": ignore case distinctions");
 
@@ -13,8 +12,7 @@ Options::Options()
     _outputOptions.add_options()("file-name,f", bool_switch(&_fileName), ": print the file name prefix on output");
     _outputOptions.add_options()("line-number,l", bool_switch(&_lineNumber), ": print line number with output lines");
 
-    for (auto const &availableEvent: _availableEvents)
-    {
+    for (auto const &availableEvent: _availableEvents) {
         _eventOptions.add_options()(availableEvent.c_str(), "");
     }
 
@@ -24,23 +22,18 @@ Options::Options()
     _visibleOptions.add(_patternOptions).add(_outputOptions).add(_miscOptions);
 }
 
-Options::~Options()
-{
-    for(auto const& linePattern: _linePatterns)
-    {
+Options::~Options() {
+    for(auto const& linePattern: _linePatterns) {
         pcre2_code_free(linePattern);
     }
 
-    for(auto const& propertyPattern: _propertyPatterns)
-    {
+    for(auto const& propertyPattern: _propertyPatterns) {
         pcre2_code_free(propertyPattern.second);
     }
 }
 
-void Options::run(int argc, const char **argv)
-{
-    try
-    {
+void Options::run(int argc, const char **argv) {
+    try {
         variables_map vm;
 
         auto parsed = basic_command_line_parser<char>(argc, argv).options(_allOptions).allow_unregistered().positional(_positionalOptions).run();
@@ -50,10 +43,8 @@ void Options::run(int argc, const char **argv)
 
         notify(vm);
 
-        for(auto const& availableEvent: _availableEvents)
-        {
-            if (vm.count(availableEvent))
-            {
+        for(auto const& availableEvent: _availableEvents) {
+            if (vm.count(availableEvent) != 0u) {
                 _events.push_back(availableEvent);
             }
         }
@@ -61,92 +52,74 @@ void Options::run(int argc, const char **argv)
         int errorcode;
         PCRE2_SIZE erroffset;
 
-        if (vm.count("pattern"))
-        {
-            for(auto const& linePattern: vm["pattern"].as<vector<string>>())
-            {
+        if (vm.count("pattern") != 0u) {
+            for(auto const& linePattern: vm["pattern"].as<vector<string>>()) {
                 _linePatterns.push_back(pcre2_compile(reinterpret_cast<PCRE2_SPTR>(linePattern.c_str()), PCRE2_ZERO_TERMINATED, PCRE2_DOTALL | (ignoreCase() ? PCRE2_CASELESS : 0), &errorcode, &erroffset, nullptr));
                 pcre2_jit_compile(_linePatterns.back(), PCRE2_JIT_COMPLETE);
             }
         }
 
-        for(auto const& unrecognizedOption: unrecognizedOptions)
-        {
+        for(auto const& unrecognizedOption: unrecognizedOptions) {
             auto splitted = split_unix(unrecognizedOption, "=");
 
-            if (splitted.size() == 2 && unrecognizedOption.find("--") == 0)
-            {
+            if (splitted.size() == 2 && unrecognizedOption.find("--") == 0) {
                 _propertyPatterns.emplace_back(make_pair(string(splitted[0].substr(2)), pcre2_compile(reinterpret_cast<PCRE2_SPTR>(splitted[1].c_str()), PCRE2_ZERO_TERMINATED, PCRE2_DOTALL | (ignoreCase() ? PCRE2_CASELESS : 0), &errorcode, &erroffset, nullptr)));
                 pcre2_jit_compile(_propertyPatterns.back().second, PCRE2_JIT_COMPLETE);
             }
-            else
-            {
+            else {
                 throw unknown_option(unrecognizedOption);
             }
         }
     }
-    catch (exception &e)
-    {
+    catch (exception &e) {
         throw;
     }
 }
 
-bool Options::version()
-{
+bool Options::version() {
     return _version;
 }
 
-bool Options::help()
-{
+bool Options::help() {
     return _help;
 }
 
-bool Options::helpEvents()
-{
+bool Options::helpEvents() {
     return _helpEvents;
 }
 
-unsigned int Options::stopAfter()
-{
+unsigned int Options::stopAfter() {
     return _stopAfter;
 }
 
-bool Options::fileName()
-{
+bool Options::fileName() {
     return _fileName;
 }
 
-bool Options::lineNumber()
-{
+bool Options::lineNumber() {
     return _lineNumber;
 }
 
-bool Options::ignoreCase()
-{
+bool Options::ignoreCase() {
     return _ignoreCase;
 }
 
-vector<pcre2_code_8 *> Options::linePatterns()
-{
+vector<pcre2_code_8 *> Options::linePatterns() {
     return _linePatterns;
 }
 
-vector<pair<string, pcre2_code_8 *> > Options::propertyPatterns()
-{
+vector<pair<string, pcre2_code_8 *> > Options::propertyPatterns() {
     return _propertyPatterns;
 }
 
-vector<string> Options::events()
-{
+vector<string> Options::events() {
     return _events;
 }
 
-options_description Options::visibleOptions()
-{
+options_description Options::visibleOptions() {
     return _visibleOptions;
 }
 
-options_description Options::eventOptions()
-{
+options_description Options::eventOptions() {
     return _eventOptions;
 }

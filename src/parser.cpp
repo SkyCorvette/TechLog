@@ -1,7 +1,6 @@
 #include "parser.h"
 
-Parser::Parser(Reader* reader) : _reader(reader)
-{
+Parser::Parser(Reader* reader) : _reader(reader) {
     _bufferBegin = static_cast<char*>(malloc(_initialBufferSize));
     _bufferPosition = _bufferBegin;
     _bufferEnd = nullptr;
@@ -9,70 +8,54 @@ Parser::Parser(Reader* reader) : _reader(reader)
     _recordEnd = nullptr;
 }
 
-Parser::~Parser()
-{
+Parser::~Parser() {
     free(_bufferBegin);
 }
 
-const char* Parser::recordBegin()
-{
+const char* Parser::recordBegin() {
     return _recordBegin;
 }
 
-size_t Parser::recordLength()
-{
-    return _recordEnd ? static_cast<size_t>(_recordEnd - _recordBegin) : 0;
+size_t Parser::recordLength() {
+    return _recordEnd != nullptr ? static_cast<size_t>(_recordEnd - _recordBegin) : 0;
 }
 
-unsigned long Parser::recordNumber()
-{
+unsigned long Parser::recordNumber() {
     return _recordNumber;
 }
 
-bool Parser::next()
-{
-    while (true)
-    {
-        if (!_bufferEnd)
-        {
+bool Parser::next() {
+    while (true) {
+        if (_bufferEnd == nullptr) {
             ssize_t bytesRead = _reader->readNext(_bufferPosition, _initialBufferSize);
-
-            if (!bytesRead)
-            {
+            if (bytesRead == 0) {
                 return false;
             }
-
             _bufferEnd = _bufferPosition + bytesRead;
         }
 
-        if (_recordEnd)
-        {
+        if (_recordEnd != nullptr) {
             _recordBegin = _recordEnd;
         }
 
-        while(*_recordBegin == '\n' && _recordBegin < _bufferEnd)
-        {
+        while(*_recordBegin == '\n' && _recordBegin < _bufferEnd) {
             ++_recordBegin;
         }
 
-        if ((_recordEnd = findFirst('\n')))
-        {
+        if ((_recordEnd = findFirst('\n')) != nullptr) {
             ++_recordNumber;
             return true;
         }
-        else if (_recordBegin == _bufferEnd)
-        {
+        if (_recordBegin == _bufferEnd) {
             free(_bufferBegin);
             _bufferBegin = static_cast<char*>(malloc(_initialBufferSize));
             _bufferPosition = _bufferBegin;
         }
-        else
-        {
+        else {
             auto savedSize = static_cast<size_t>(_bufferEnd - _recordBegin);
             memmove(_bufferBegin, _recordBegin, savedSize);
             auto tmp = static_cast<char*>(realloc(_bufferBegin, savedSize + _initialBufferSize));
-            if (tmp)
-            {
+            if (tmp != nullptr) {
                 _bufferBegin = tmp;
                 _bufferPosition = _bufferBegin + savedSize;
             }
@@ -82,13 +65,11 @@ bool Parser::next()
     }
 }
 
-const char* Parser::fileName()
-{
+const char* Parser::fileName() {
     return _reader->fileName();
 }
 
-char* Parser::findFirst(const char separator)
-{
+char* Parser::findFirst(const char separator) {
     auto buf = _recordBegin;
     char* sp = nullptr;
     char* dq = nullptr;
@@ -96,27 +77,22 @@ char* Parser::findFirst(const char separator)
     auto inDQ = false;
     auto inSQ = false;
 
-    while ((sp = static_cast<char*>(memchr(buf, separator, static_cast<size_t>(_bufferEnd - buf)))))
-    {
+    while ((sp = static_cast<char*>(memchr(buf, separator, static_cast<size_t>(_bufferEnd - buf)))) != nullptr) {
         dq = inSQ ? nullptr : static_cast<char*>(memchr(buf, '"', static_cast<size_t>(sp - buf)));
         sq = inDQ ? nullptr : static_cast<char*>(memchr(buf, '\'', static_cast<size_t>(sp - buf)));
 
-        if ((dq && sq && dq < sq) || (dq && !sq))
-        {
+        if (((dq != nullptr) && (sq != nullptr) && dq < sq) || ((dq != nullptr) && (sq == nullptr))) {
             inDQ = !inDQ;
             buf = dq + 1;
         }
-        else if ((dq && dq > sq) || (!dq && sq))
-        {
+        else if (((dq != nullptr) && dq > sq) || ((dq == nullptr) && (sq != nullptr))) {
             inSQ = !inSQ;
             buf = sq + 1;
         }
-        else if (!inDQ && !inSQ)
-        {
+        else if (!inDQ && !inSQ) {
             return sp;
         }
-        else
-        {
+        else {
             buf = sp + 1;
         }
     }

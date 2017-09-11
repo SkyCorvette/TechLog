@@ -1,5 +1,5 @@
-#ifndef VERSION_H
-#define VERSION_H
+#ifndef TECHLOG_VERSION_H
+#define TECHLOG_VERSION_H
 
 #define VERSION_MAJOR @VERSION_MAJOR@
 #define VERSION_MINOR @VERSION_MINOR@
@@ -33,4 +33,4 @@ For more information, please refer to <http://unlicense.org>"
 #define WRITTENBY "\n\
 Written by Sky Corvette and others, see <https://github.com/SkyCorvette/TechLog>."
 
-#endif //VERSION_H
+#endif

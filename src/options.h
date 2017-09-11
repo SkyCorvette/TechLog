@@ -1,5 +1,5 @@
-#ifndef OPTIONS_H
-#define OPTIONS_H
+#ifndef TECHLOG_OPTIONS_H
+#define TECHLOG_OPTIONS_H
 
 #include <boost/program_options.hpp>
 #define PCRE2_CODE_UNIT_WIDTH 8
@@ -8,8 +8,7 @@
 using namespace std;
 using namespace boost::program_options;
 
-class Options
-{
+class Options {
 public:
     Options();
     ~Options();
@@ -49,8 +48,7 @@ private:
     options_description _eventOptions{"Events"};
     positional_options_description _positionalOptions{};
 
-    const vector<string> _availableEvents
-    {
+    const vector<string> _availableEvents {
         "ADMIN", "ATTN", "CALL", "CONN", "CONFLOADFROMFILES", "CLSTR", "DB2", "DBMSSQL", "DBMSSQLCONN",
         "DBPOSTGRS", "DBORACLE", "DBV8DBENG", "EDS", "EXCP", "EXCPCNTX", "InputByString", "FTEXTCheck",
         "FTEXTUpd", "HASP", "LEAKS", "LIC", "MAILPARSEERR", "MEM", "PROC", "QERR", "SCALL", "SCOM",
@@ -58,4 +56,4 @@ private:
     };
 };
 
-#endif //OPTIONS_H
+#endif

@@ -1,12 +1,11 @@
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef TECHLOG_PARSER_H
+#define TECHLOG_PARSER_H
 
 #include <iostream>
 #include <cstring>
 #include "reader.h"
 
-class Parser
-{
+class Parser {
 public:
     explicit Parser(Reader* reader);
     ~Parser();
@@ -33,4 +32,4 @@ private:
     Parser& operator=(const Parser &parser);
 };
 
-#endif //PARSER_H
+#endif

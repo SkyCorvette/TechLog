@@ -1,12 +1,11 @@
-#ifndef FILE_H
-#define FILE_H
+#ifndef TECHLOG_FILE_H
+#define TECHLOG_FILE_H
 
 #include <fcntl.h>
 #include <unistd.h>
 #include "reader.h"
 
-class File : public Reader
-{
+class File : public Reader {
 public:
     explicit File(const char* path);
     ~File() override;
@@ -19,4 +18,4 @@ private:
     File& operator=(const File&);
 };
 
-#endif //FILE_H
+#endif
