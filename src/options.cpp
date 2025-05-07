@@ -1,7 +1,5 @@
 #include "options.h"
 
-#include <__ranges/transform_view.h>
-
 Options::Options() {
     _patternOptions.add_options()("pattern,p", value<vector<string>>()->multitoken(), ": use pattern ARG for matching");
     _patternOptions.add_options()("ignore-case,i", bool_switch(&_ignoreCase), ": ignore case distinctions");
@@ -29,8 +27,8 @@ Options::~Options() {
         pcre2_code_free(linePattern);
     }
 
-    for (auto value : _propertyPatterns | ranges::views::transform([](const auto& pair) { return pair.second; })) {
-        pcre2_code_free(value);
+    for(auto const& propertyPattern: _propertyPatterns) {
+        pcre2_code_free(propertyPattern.second);
     }
 }
 
