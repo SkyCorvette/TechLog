@@ -44,8 +44,3 @@ jobs:
 
     - name: Build
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
-    
-    - name: Archive build output
-      run: |
-        cd ${{ steps.strings.outputs.build-output-dir }}
-        zip -r app-${{ matrix.os }}-${{ matrix.c_compiler }}.zip .
