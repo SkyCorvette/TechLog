@@ -1,7 +1,6 @@
 #ifndef TECHLOG_FILE_H
 #define TECHLOG_FILE_H
 
-#include <fcntl.h>
 #include <unistd.h>
 #include "reader.h"
 
@@ -14,8 +13,6 @@ public:
 private:
     int _file = 0;
     const char* _fileName;
-    File(const File&);
-    File& operator=(const File&);
 };
 
 #endif

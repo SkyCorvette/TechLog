@@ -1,4 +1,6 @@
 #include "parser.h"
+#include <iostream>
+#include <cstring>
 
 Parser::Parser(Reader* reader) : _reader(reader) {
     _bufferBegin = static_cast<char*>(malloc(_initialBufferSize));
@@ -12,15 +14,15 @@ Parser::~Parser() {
     free(_bufferBegin);
 }
 
-const char* Parser::recordBegin() {
+const char* Parser::recordBegin() const {
     return _recordBegin;
 }
 
-size_t Parser::recordLength() {
+size_t Parser::recordLength() const {
     return _recordEnd != nullptr ? static_cast<size_t>(_recordEnd - _recordBegin) : 0;
 }
 
-unsigned long Parser::recordNumber() {
+unsigned long Parser::recordNumber() const {
     return _recordNumber;
 }
 
@@ -42,7 +44,7 @@ bool Parser::next() {
             ++_recordBegin;
         }
 
-        if ((_recordEnd = findFirst('\n')) != nullptr) {
+        if ((_recordEnd = findFirstNewLine()) != nullptr) {
             ++_recordNumber;
             return true;
         }
@@ -65,11 +67,11 @@ bool Parser::next() {
     }
 }
 
-const char* Parser::fileName() {
+const char* Parser::fileName() const {
     return _reader->fileName();
 }
 
-char* Parser::findFirst(const char separator) {
+char* Parser::findFirstNewLine() const {
     auto buf = _recordBegin;
     char* sp = nullptr;
     char* dq = nullptr;
@@ -77,7 +79,7 @@ char* Parser::findFirst(const char separator) {
     auto inDQ = false;
     auto inSQ = false;
 
-    while ((sp = static_cast<char*>(memchr(buf, separator, static_cast<size_t>(_bufferEnd - buf)))) != nullptr) {
+    while ((sp = static_cast<char*>(memchr(buf, '\n', static_cast<size_t>(_bufferEnd - buf)))) != nullptr) {
         dq = inSQ ? nullptr : static_cast<char*>(memchr(buf, '"', static_cast<size_t>(sp - buf)));
         sq = inDQ ? nullptr : static_cast<char*>(memchr(buf, '\'', static_cast<size_t>(sp - buf)));
 

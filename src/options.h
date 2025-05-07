@@ -13,13 +13,13 @@ public:
     Options();
     ~Options();
     void run(int argc, const char **argv);
-    bool version();
-    bool help();
-    bool helpEvents();
-    unsigned stopAfter();
-    bool fileName();
-    bool lineNumber();
-    bool ignoreCase();
+    [[nodiscard]] bool version() const;
+    [[nodiscard]] bool help() const;
+    [[nodiscard]] bool helpEvents() const;
+    [[nodiscard]] unsigned stopAfter() const;
+    [[nodiscard]] bool fileName() const;
+    [[nodiscard]] bool lineNumber() const;
+    [[nodiscard]] bool ignoreCase() const;
     vector<pcre2_code*> linePatterns();
     vector<pair<string, pcre2_code_8 *> > propertyPatterns();
     vector<string> events();
@@ -49,10 +49,12 @@ private:
     positional_options_description _positionalOptions{};
 
     const vector<string> _availableEvents {
-        "ADMIN", "ATTN", "CALL", "CONN", "CONFLOADFROMFILES", "CLSTR", "DB2", "DBMSSQL", "DBMSSQLCONN",
-        "DBPOSTGRS", "DBORACLE", "DBV8DBENG", "EDS", "EXCP", "EXCPCNTX", "InputByString", "FTEXTCheck",
-        "FTEXTUpd", "HASP", "LEAKS", "LIC", "MAILPARSEERR", "MEM", "PROC", "QERR", "SCALL", "SCOM",
-        "SDBL", "SESN", "SRVC", "SYSTEM", "TDEADLOCK", "TTIMEOUT", "TLOCK", "VRSCACHE", "VRSREQUEST", "VRSRESPONSE"
+        "ADDIN", "ADMIN", "ATTN","CALL","CLSTR","CONFLOADFROMFILES","CONN","DB2","DBCOPIES",
+        "DBMSSQL","DBMSSQLCONN","DBORACLE","DBPOSTGRS","DBV8DBENG","DHIST","EDS","EVENTLOG",
+        "EXCP","EXCPCNTX","FTEXTCHECK","FTEXTUPD","FTS","HASP","INPUTBYSTRING","LEAKS",
+        "LIC","MAILPARSEERR","MEM","PROC","QERR","SCALL","SCOM","SDBL","SDGC","SESN",
+        "SINTEG","SRVC","STORE","STT","STTADM","SYSTEM","TDEADLOCK","TLOCK","TTIMEOUT",
+        "VIDEOCALL","VIDEOCONN","VIDEOSTATS","VRSCACHE","VRSREQUEST","VRSRESPONSE","WINCERT"
     };
 };
 

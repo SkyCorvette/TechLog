@@ -1,8 +1,6 @@
 #ifndef TECHLOG_PARSER_H
 #define TECHLOG_PARSER_H
 
-#include <iostream>
-#include <cstring>
 #include "reader.h"
 
 class Parser {
@@ -10,11 +8,11 @@ public:
     explicit Parser(Reader* reader);
     ~Parser();
 
-    const char* recordBegin();
-    size_t recordLength();
-    long unsigned recordNumber();
+    [[nodiscard]] const char* recordBegin() const;
+    [[nodiscard]] size_t recordLength() const;
+    [[nodiscard]] long unsigned recordNumber() const;
     bool next();
-    const char* fileName();
+    [[nodiscard]] const char* fileName() const;
 
 private:
     Reader* _reader;
@@ -26,10 +24,7 @@ private:
     long unsigned _recordNumber = 0;
     const long unsigned _initialBufferSize = 32768;
 
-    char* findFirst(char separator);
-
-    Parser(const Parser &parser);
-    Parser& operator=(const Parser &parser);
+    [[nodiscard]] char* findFirstNewLine() const;
 };
 
 #endif

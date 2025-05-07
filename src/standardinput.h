@@ -1,7 +1,6 @@
 #ifndef STANDARDINPUT_H
 #define STANDARDINPUT_H
 
-#include <fcntl.h>
 #include <unistd.h>
 #include "reader.h"
 

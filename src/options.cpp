@@ -1,5 +1,7 @@
 #include "options.h"
 
+#include <__ranges/transform_view.h>
+
 Options::Options() {
     _patternOptions.add_options()("pattern,p", value<vector<string>>()->multitoken(), ": use pattern ARG for matching");
     _patternOptions.add_options()("ignore-case,i", bool_switch(&_ignoreCase), ": ignore case distinctions");
@@ -27,8 +29,8 @@ Options::~Options() {
         pcre2_code_free(linePattern);
     }
 
-    for(auto const& propertyPattern: _propertyPatterns) {
-        pcre2_code_free(propertyPattern.second);
+    for (auto value : _propertyPatterns | ranges::views::transform([](const auto& pair) { return pair.second; })) {
+        pcre2_code_free(value);
     }
 }
 
@@ -44,7 +46,7 @@ void Options::run(int argc, const char **argv) {
         notify(vm);
 
         for(auto const& availableEvent: _availableEvents) {
-            if (vm.count(availableEvent) != 0u) {
+            if (vm.contains(availableEvent)) {
                 _events.push_back(availableEvent);
             }
         }
@@ -52,7 +54,7 @@ void Options::run(int argc, const char **argv) {
         int errorcode;
         PCRE2_SIZE erroffset;
 
-        if (vm.count("pattern") != 0u) {
+        if (vm.contains("pattern")) {
             for(auto const& linePattern: vm["pattern"].as<vector<string>>()) {
                 _linePatterns.push_back(pcre2_compile(reinterpret_cast<PCRE2_SPTR>(linePattern.c_str()), PCRE2_ZERO_TERMINATED, PCRE2_DOTALL | (ignoreCase() ? PCRE2_CASELESS : 0), &errorcode, &erroffset, nullptr));
                 pcre2_jit_compile(_linePatterns.back(), PCRE2_JIT_COMPLETE);
@@ -63,7 +65,7 @@ void Options::run(int argc, const char **argv) {
             auto splitted = split_unix(unrecognizedOption, "=");
 
             if (splitted.size() == 2 && unrecognizedOption.find("--") == 0) {
-                _propertyPatterns.emplace_back(make_pair(string(splitted[0].substr(2)), pcre2_compile(reinterpret_cast<PCRE2_SPTR>(splitted[1].c_str()), PCRE2_ZERO_TERMINATED, PCRE2_DOTALL | (ignoreCase() ? PCRE2_CASELESS : 0), &errorcode, &erroffset, nullptr)));
+                _propertyPatterns.emplace_back(string(splitted[0].substr(2)), pcre2_compile(reinterpret_cast<PCRE2_SPTR>(splitted[1].c_str()), PCRE2_ZERO_TERMINATED, PCRE2_DOTALL | (ignoreCase() ? PCRE2_CASELESS : 0), &errorcode, &erroffset, nullptr));
                 pcre2_jit_compile(_propertyPatterns.back().second, PCRE2_JIT_COMPLETE);
             }
             else {
@@ -71,36 +73,36 @@ void Options::run(int argc, const char **argv) {
             }
         }
     }
-    catch (exception &e) {
+    catch (exception&) {
         throw;
     }
 }
 
-bool Options::version() {
+bool Options::version() const {
     return _version;
 }
 
-bool Options::help() {
+bool Options::help() const {
     return _help;
 }
 
-bool Options::helpEvents() {
+bool Options::helpEvents() const {
     return _helpEvents;
 }
 
-unsigned int Options::stopAfter() {
+unsigned int Options::stopAfter() const {
     return _stopAfter;
 }
 
-bool Options::fileName() {
+bool Options::fileName() const {
     return _fileName;
 }
 
-bool Options::lineNumber() {
+bool Options::lineNumber() const {
     return _lineNumber;
 }
 
-bool Options::ignoreCase() {
+bool Options::ignoreCase() const {
     return _ignoreCase;
 }
 

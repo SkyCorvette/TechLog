@@ -3,6 +3,7 @@
 #include <iostream>
 
 #define PCRE2_CODE_UNIT_WIDTH 8
+#include <filesystem>
 #include <pcre2.h>
 
 #include "file.h"
@@ -21,8 +22,11 @@ inline unsigned int match(Parser* parser, Options* options) {
     static const string color_lineno   {"\x1B[32;1m\x1B[K"}; // 33=green, 1=bold
     static const string color_normal   {"\x1B[0m\x1B[K"};    // Reset/normal (all attributes off).
 
-    PCRE2_SIZE *ovector;
+    #if defined(__GNUC__) && defined(__GLIBC__)
     auto tmp = strndupa(parser->recordBegin(), parser->recordLength());
+    #else
+    auto tmp = strndup(parser->recordBegin(), parser->recordLength());
+    #endif
     auto printLine = false;
 
     for(auto const& linePattern: options->linePatterns()) {
@@ -43,7 +47,7 @@ inline unsigned int match(Parser* parser, Options* options) {
             }
 
             printLine = true;
-            ovector = pcre2_get_ovector_pointer(match_data);
+            PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data);
 
             for (int i = 0; i < rc; i++) {
                 cout << string(tmp, ovector[2 * i]);
@@ -58,9 +62,14 @@ inline unsigned int match(Parser* parser, Options* options) {
 
     if (printLine) {
         cout << tmp << endl;
-        return 1;
     }
-    return 0;
+
+    #if defined(__GNUC__) && defined(__GLIBC__)
+    #else
+    free(tmp);
+    #endif
+
+    return printLine;
 }
 
 int main(int argc, const char **argv)
@@ -107,15 +116,15 @@ int main(int argc, const char **argv)
     pcre2_jit_compile(fileNamePattern, PCRE2_JIT_COMPLETE);
     pcre2_match_data *fileNameMatchData = pcre2_match_data_create_from_pattern(fileNamePattern, nullptr);
 
-    for (recursive_directory_iterator it("./"); it != recursive_directory_iterator();) {
+    for (filesystem::recursive_directory_iterator it("./"); it != filesystem::recursive_directory_iterator();) {
         try {
             isRegularFile = is_regular_file(it->path());
         }
-        catch (const filesystem_error& ex) {
+        catch (const filesystem::filesystem_error&) {
             isRegularFile = false;
         }
 
-        if (isRegularFile && (pcre2_jit_match(fileNamePattern, reinterpret_cast<PCRE2_SPTR>(it->path().filename().c_str()), it->path().filename().size(), 0, 0, fileNameMatchData, nullptr) > 0)) {
+        if (isRegularFile && (pcre2_jit_match(fileNamePattern, reinterpret_cast<PCRE2_SPTR>(it->path().filename().c_str()), it->path().filename().string().size(), 0, 0, fileNameMatchData, nullptr) > 0)) {
             File file(it->path().c_str());
             Parser parser(&file);
 
